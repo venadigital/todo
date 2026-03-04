@@ -79,6 +79,7 @@ function App() {
   const [projectModalState, setProjectModalState] = useState<ProjectModalState>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [viewMode, setViewMode] = useState<BoardViewMode>('project');
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [now, setNow] = useState(new Date());
   const remoteReadyRef = useRef(false);
   const remoteAvailableRef = useRef(false);
@@ -95,6 +96,47 @@ function App() {
 
     return () => window.clearInterval(interval);
   }, [activeTracking]);
+
+  useEffect(() => {
+    if (!isMobileSidebarOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMobileSidebarOpen]);
+
+  useEffect(() => {
+    if (!isMobileSidebarOpen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMobileSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isMobileSidebarOpen]);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth > 900) {
+        setIsMobileSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', onResize);
+    onResize();
+
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -371,11 +413,13 @@ function App() {
 
   return (
     <>
-      <div className="app-shell">
+      <div className={`app-shell ${isMobileSidebarOpen ? 'sidebar-mobile-open' : ''}`}>
         <Sidebar
           projects={projects}
           tasks={tasks}
           filters={filters}
+          isMobileOpen={isMobileSidebarOpen}
+          onRequestClose={() => setIsMobileSidebarOpen(false)}
           onFiltersChange={handleFiltersChange}
           onResetFilters={actions.resetFilters}
           onCreateProject={() => setProjectModalState({ mode: 'create' })}
@@ -390,58 +434,62 @@ function App() {
             onQueryChange={(value) => handleFiltersChange({ query: value })}
             onNewTask={() => setTaskModalState({ mode: 'create' })}
             onNewProject={() => setProjectModalState({ mode: 'create' })}
+            onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+            isMobileSidebarOpen={isMobileSidebarOpen}
             activeTaskTitle={activeTrackingTask?.title ?? null}
             activeTrackingElapsed={activeTrackingElapsed}
             onStopTracking={actions.stopTracking}
           />
 
-          <div className="view-tabs" role="tablist" aria-label="Tipo de tablero">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewMode === 'project'}
-              className={`view-tab ${viewMode === 'project' ? 'view-tab-active' : ''}`}
-              onClick={() => setViewMode('project')}
-            >
-              <span className="tab-content">
-                <FolderKanban size={12} aria-hidden="true" />
-                Por proyecto
-              </span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewMode === 'global'}
-              className={`view-tab ${viewMode === 'global' ? 'view-tab-active' : ''}`}
-              onClick={() => setViewMode('global')}
-            >
-              <span className="tab-content">
-                <Globe2 size={12} aria-hidden="true" />
-                Tareas globales
-              </span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewMode === 'dashboard'}
-              className={`view-tab ${viewMode === 'dashboard' ? 'view-tab-active' : ''}`}
-              onClick={() => setViewMode('dashboard')}
-            >
-              <span className="tab-content">
-                <LayoutDashboard size={12} aria-hidden="true" />
-                Dashboard
-              </span>
-            </button>
-            <button
-              type="button"
-              className={`view-filter ${filters.due === 'today' ? 'view-filter-active' : ''}`}
-              onClick={handleToggleDueToday}
-            >
-              <span className="tab-content">
-                <CalendarDays size={12} aria-hidden="true" />
-                Vence hoy ({dueTodayCount})
-              </span>
-            </button>
+          <div className="view-tabs-scroll">
+            <div className="view-tabs" role="tablist" aria-label="Tipo de tablero">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={viewMode === 'project'}
+                className={`view-tab ${viewMode === 'project' ? 'view-tab-active' : ''}`}
+                onClick={() => setViewMode('project')}
+              >
+                <span className="tab-content">
+                  <FolderKanban size={12} aria-hidden="true" />
+                  Por proyecto
+                </span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={viewMode === 'global'}
+                className={`view-tab ${viewMode === 'global' ? 'view-tab-active' : ''}`}
+                onClick={() => setViewMode('global')}
+              >
+                <span className="tab-content">
+                  <Globe2 size={12} aria-hidden="true" />
+                  Tareas globales
+                </span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={viewMode === 'dashboard'}
+                className={`view-tab ${viewMode === 'dashboard' ? 'view-tab-active' : ''}`}
+                onClick={() => setViewMode('dashboard')}
+              >
+                <span className="tab-content">
+                  <LayoutDashboard size={12} aria-hidden="true" />
+                  Dashboard
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`view-filter ${filters.due === 'today' ? 'view-filter-active' : ''}`}
+                onClick={handleToggleDueToday}
+              >
+                <span className="tab-content">
+                  <CalendarDays size={12} aria-hidden="true" />
+                  Vence hoy ({dueTodayCount})
+                </span>
+              </button>
+            </div>
           </div>
 
           {viewMode === 'project' ? (

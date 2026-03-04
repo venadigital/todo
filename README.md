@@ -12,7 +12,7 @@ Tablero Kanban estilo IDE/retro con:
 
 - Frontend: React + Vite + TypeScript + Zustand
 - Backend: Node.js + Express
-- Persistencia backend: archivo JSON (`data/todo-board-state.json`)
+- Persistencia backend: MySQL (produccion) o archivo JSON (`data/todo-board-state.json`) en modo local
 
 ## Scripts
 
@@ -66,14 +66,31 @@ Config recomendada:
 - Start command: `npm run start`
 - Node version: `20` o superior compatible (`>=20 <25`)
 
-Variables opcionales de backend:
+Variables recomendadas de backend (MySQL):
+
+- `STORAGE_DRIVER=mysql`
+- `DB_HOST=...`
+- `DB_PORT=3306`
+- `DB_USER=...`
+- `DB_PASSWORD=...`
+- `DB_NAME=...`
+- `DB_SSL=true` (si tu plan lo requiere)
+- `DB_POOL_SIZE=8` (opcional)
+
+Variables opcionales de backend (modo archivo local):
 
 - `PORT`: puerto asignado por Hostinger
 - `DATA_FILE`: ruta completa del archivo de datos
 
-Ejemplo:
+Ejemplo (modo archivo):
 
 - `DATA_FILE=/home/usuario/data/todo-board-state.json`
+
+### Nota de storage
+
+- Si `STORAGE_DRIVER=mysql` (o si existen `DB_HOST`, `DB_USER`, `DB_NAME`), el servidor usa MySQL.
+- Si no hay configuracion MySQL, usa archivo JSON local.
+- Endpoint de salud muestra el motor activo: `GET /api/health` retorna `storage: "mysql"` o `storage: "file"`.
 
 ## API minima
 

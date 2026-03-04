@@ -1,10 +1,12 @@
-import { FolderPlus, Search, Square, SquarePlus } from 'lucide-react';
+import { FolderPlus, Menu, Search, Square, SquarePlus } from 'lucide-react';
 
 interface HeaderBarProps {
   query: string;
   onQueryChange: (value: string) => void;
   onNewTask: () => void;
   onNewProject: () => void;
+  onOpenMobileSidebar: () => void;
+  isMobileSidebarOpen: boolean;
   totalTasks: number;
   activeTaskTitle: string | null;
   activeTrackingElapsed: string;
@@ -16,6 +18,8 @@ export const HeaderBar = ({
   onQueryChange,
   onNewTask,
   onNewProject,
+  onOpenMobileSidebar,
+  isMobileSidebarOpen,
   totalTasks,
   activeTaskTitle,
   activeTrackingElapsed,
@@ -23,8 +27,23 @@ export const HeaderBar = ({
 }: HeaderBarProps) => {
   return (
     <header className="topbar">
-      <div>
-        <h1>✌️ To Do Vena Digital</h1>
+      <div className="topbar-main">
+        <div className="topbar-title-row">
+          <button
+            type="button"
+            className="button button-secondary button-small mobile-menu-button"
+            onClick={onOpenMobileSidebar}
+            aria-label="Abrir menú de proyectos y filtros"
+            aria-controls="app-sidebar"
+            aria-expanded={isMobileSidebarOpen}
+          >
+            <span className="button-content">
+              <Menu size={12} aria-hidden="true" />
+              Menú
+            </span>
+          </button>
+          <h1>✌️ To Do Vena Digital</h1>
+        </div>
         <p>{totalTasks} tareas visibles</p>
         {activeTaskTitle && (
           <p className="tracking-banner">
