@@ -19,7 +19,7 @@ import { TaskModal } from './components/TaskModal';
 import { TimeDashboard } from './components/TimeDashboard';
 import { formatElapsedClock } from './lib/timeTracking';
 import { isRemoteSyncEnabled, loadRemoteState, saveRemoteState } from './lib/remoteState';
-import { useAppStore } from './store/createAppStore';
+import { appStoreApi, useAppStore } from './store/createAppStore';
 import { filterTasks } from './store/selectors';
 import { CalendarDays, FolderKanban, Globe2, LayoutDashboard } from 'lucide-react';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -55,6 +55,15 @@ interface ConfirmState {
   confirmLabel: string;
   onConfirm: () => void;
 }
+
+const hasAnyUserData = (state: AppStateV1): boolean => {
+  return (
+    state.projects.length > 0 ||
+    state.tasks.length > 0 ||
+    state.subtasks.length > 0 ||
+    state.timeSessions.length > 0
+  );
+};
 
 function App() {
   const tasks = useAppStore((state) => state.tasks);
@@ -295,6 +304,25 @@ function App() {
       try {
         const remote = await loadRemoteState();
         if (!remote || cancelled) {
+          return;
+        }
+
+        const localState = appStoreApi.getState();
+        const localPayload: AppStateV1 = {
+          version: 1,
+          projects: localState.projects,
+          tasks: localState.tasks,
+          subtasks: localState.subtasks,
+          filters: localState.filters,
+          timeSessions: localState.timeSessions,
+          activeTracking: localState.activeTracking,
+        };
+
+        // Migracion automatica: si remoto esta vacio y local tiene datos, subimos local.
+        if (!hasAnyUserData(remote) && hasAnyUserData(localPayload)) {
+          await saveRemoteState(localPayload);
+          remoteAvailableRef.current = true;
+          lastRemoteSnapshotRef.current = JSON.stringify(localPayload);
           return;
         }
 
