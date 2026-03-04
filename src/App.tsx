@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   closestCorners,
   DndContext,
@@ -18,11 +18,12 @@ import { TaskDetailModal } from './components/TaskDetailModal';
 import { TaskModal } from './components/TaskModal';
 import { TimeDashboard } from './components/TimeDashboard';
 import { formatElapsedClock } from './lib/timeTracking';
+import { isRemoteSyncEnabled, loadRemoteState, saveRemoteState } from './lib/remoteState';
 import { useAppStore } from './store/createAppStore';
 import { filterTasks } from './store/selectors';
 import { CalendarDays, FolderKanban, Globe2, LayoutDashboard } from 'lucide-react';
 import type { DragEndEvent } from '@dnd-kit/core';
-import type { BoardFilters, TaskStatus } from './types';
+import type { AppStateV1, BoardFilters, TaskStatus } from './types';
 
 const statusColumns: Array<{ status: TaskStatus; title: string }> = [
   { status: 'pending', title: 'Pendiente' },
@@ -70,6 +71,9 @@ function App() {
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [viewMode, setViewMode] = useState<BoardViewMode>('project');
   const [now, setNow] = useState(new Date());
+  const remoteReadyRef = useRef(false);
+  const remoteAvailableRef = useRef(false);
+  const lastRemoteSnapshotRef = useRef('');
 
   useEffect(() => {
     if (!activeTracking) {
@@ -264,6 +268,78 @@ function App() {
       setViewMode('global');
     }
   };
+
+  const syncStatePayload = useMemo<AppStateV1>(
+    () => ({
+      version: 1,
+      projects,
+      tasks,
+      subtasks,
+      filters,
+      timeSessions,
+      activeTracking,
+    }),
+    [projects, tasks, subtasks, filters, timeSessions, activeTracking],
+  );
+
+  useEffect(() => {
+    if (!isRemoteSyncEnabled()) {
+      remoteReadyRef.current = true;
+      remoteAvailableRef.current = false;
+      return;
+    }
+
+    let cancelled = false;
+
+    const hydrateFromRemote = async () => {
+      try {
+        const remote = await loadRemoteState();
+        if (!remote || cancelled) {
+          return;
+        }
+
+        remoteAvailableRef.current = true;
+        actions.hydrateState(remote);
+        lastRemoteSnapshotRef.current = JSON.stringify(remote);
+      } catch {
+        // Si falla remoto, mantenemos modo local y seguimos operando.
+        remoteAvailableRef.current = false;
+      } finally {
+        if (!cancelled) {
+          remoteReadyRef.current = true;
+        }
+      }
+    };
+
+    void hydrateFromRemote();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [actions]);
+
+  useEffect(() => {
+    if (!isRemoteSyncEnabled() || !remoteReadyRef.current || !remoteAvailableRef.current) {
+      return;
+    }
+
+    const nextSnapshot = JSON.stringify(syncStatePayload);
+    if (nextSnapshot === lastRemoteSnapshotRef.current) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void saveRemoteState(syncStatePayload)
+        .then(() => {
+          lastRemoteSnapshotRef.current = nextSnapshot;
+        })
+        .catch(() => {
+          // Reintentaremos en siguientes cambios.
+        });
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [syncStatePayload]);
 
   return (
     <>

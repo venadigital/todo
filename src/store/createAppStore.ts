@@ -37,6 +37,7 @@ export interface TaskEditorPayload extends TaskDraft {
 }
 
 export interface AppActions {
+  hydrateState: (payload: AppStateV1) => void;
   saveTask: (payload: TaskEditorPayload) => string;
   deleteTask: (taskId: string) => void;
   moveTask: (taskId: string, status: TaskStatus) => void;
@@ -154,6 +155,12 @@ export const createAppStore = (initialState?: AppStateV1) => {
   return createStore<AppStoreState>((set, get) => ({
     ...baseState,
     actions: {
+      hydrateState: (payload) => {
+        set((state) => ({
+          ...payload,
+          actions: state.actions,
+        }));
+      },
       saveTask: (payload) => {
         const taskId = payload.id ?? makeId('task');
 

@@ -163,13 +163,17 @@ export const loadState = (): AppStateV1 => {
 
     const parsed = JSON.parse(raw) as { version?: number };
     if (parsed.version === VERSION) {
-      return migrateToV1(parsed) ?? createDefaultState();
+      return normalizeState(parsed);
     }
 
-    return migrateToV1(parsed) ?? createDefaultState();
+    return normalizeState(parsed);
   } catch {
     return createDefaultState();
   }
+};
+
+export const normalizeState = (raw: unknown): AppStateV1 => {
+  return migrateToV1(raw) ?? createDefaultState();
 };
 
 export const saveState = (state: AppStateV1): void => {
