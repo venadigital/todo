@@ -1,3 +1,4 @@
+import { CalendarPlus2, Eye, Pause, Pencil, Play, Trash2 } from 'lucide-react';
 import { ProgressBar } from './ProgressBar';
 import type { Priority, Project, Subtask, Task, TaskStatus } from '../types';
 
@@ -43,12 +44,12 @@ export const GlobalPendingBoard = ({
   return (
     <section className="global-board">
       <header className="global-board__header">
-        <h3>Pendientes Globales</h3>
+        <h3>Tareas globales</h3>
         <span>{tasks.length}</span>
       </header>
 
       {tasks.length === 0 ? (
-        <p className="global-board__empty">No hay tareas pendientes globales para los filtros actuales.</p>
+        <p className="global-board__empty">No hay tareas globales para los filtros actuales.</p>
       ) : (
         <div className="global-board__grid">
           {tasks.map((task) => {
@@ -129,7 +130,14 @@ export const GlobalPendingBoard = ({
                     }`}
                     onClick={() => onToggleTracking(task.id)}
                   >
-                    {activeTrackingTaskId === task.id ? 'Detener tiempo' : 'Trabajar ahora'}
+                    <span className="button-content">
+                      {activeTrackingTaskId === task.id ? (
+                        <Pause size={12} aria-hidden="true" />
+                      ) : (
+                        <Play size={12} aria-hidden="true" />
+                      )}
+                      {activeTrackingTaskId === task.id ? 'Detener tiempo' : 'Trabajar ahora'}
+                    </span>
                   </button>
 
                   <button
@@ -137,33 +145,51 @@ export const GlobalPendingBoard = ({
                     className="button button-secondary button-small"
                     onClick={() => onPostpone(task.id, 1)}
                   >
-                    +1d
+                    <span className="button-content">
+                      <CalendarPlus2 size={11} aria-hidden="true" />
+                      +1d
+                    </span>
                   </button>
                   <button
                     type="button"
                     className="button button-secondary button-small"
                     onClick={() => onPostpone(task.id, 3)}
                   >
-                    +3d
+                    <span className="button-content">
+                      <CalendarPlus2 size={11} aria-hidden="true" />
+                      +3d
+                    </span>
                   </button>
                   <button
                     type="button"
                     className="button button-secondary button-small"
                     onClick={() => onPostpone(task.id, 7)}
                   >
-                    +7d
+                    <span className="button-content">
+                      <CalendarPlus2 size={11} aria-hidden="true" />
+                      +7d
+                    </span>
                   </button>
                 </div>
 
                 <div className="task-actions">
                   <button type="button" className="button button-secondary" onClick={() => onOpenTaskDetail(task.id)}>
-                    Detalle
+                    <span className="button-content">
+                      <Eye size={12} aria-hidden="true" />
+                      Detalle
+                    </span>
                   </button>
                   <button type="button" className="button button-secondary" onClick={() => onEditTask(task.id)}>
-                    Editar
+                    <span className="button-content">
+                      <Pencil size={12} aria-hidden="true" />
+                      Editar
+                    </span>
                   </button>
                   <button type="button" className="button button-danger" onClick={() => onDeleteTask(task.id)}>
-                    Borrar
+                    <span className="button-content">
+                      <Trash2 size={12} aria-hidden="true" />
+                      Borrar
+                    </span>
                   </button>
                 </div>
               </article>

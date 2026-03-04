@@ -17,11 +17,12 @@ import { Sidebar } from './components/Sidebar';
 import { TaskDetailModal } from './components/TaskDetailModal';
 import { TaskModal } from './components/TaskModal';
 import { TimeDashboard } from './components/TimeDashboard';
-import { formatMinutes } from './lib/timeTracking';
+import { formatElapsedClock } from './lib/timeTracking';
 import { useAppStore } from './store/createAppStore';
 import { filterTasks } from './store/selectors';
+import { CalendarDays, FolderKanban, Globe2, LayoutDashboard } from 'lucide-react';
 import type { DragEndEvent } from '@dnd-kit/core';
-import type { TaskStatus } from './types';
+import type { BoardFilters, TaskStatus } from './types';
 
 const statusColumns: Array<{ status: TaskStatus; title: string }> = [
   { status: 'pending', title: 'Pendiente' },
@@ -71,12 +72,16 @@ function App() {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
+    if (!activeTracking) {
+      return;
+    }
+
     const interval = window.setInterval(() => {
       setNow(new Date());
-    }, 30000);
+    }, 1000);
 
     return () => window.clearInterval(interval);
-  }, []);
+  }, [activeTracking]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -102,7 +107,22 @@ function App() {
     return map;
   }, [subtasks]);
 
-  const filteredTasks = useMemo(() => filterTasks(tasks, filters).sort(sortTasks), [tasks, filters]);
+  const effectiveFilters = useMemo(() => {
+    if (filters.due !== 'today') {
+      return filters;
+    }
+
+    return {
+      ...filters,
+      projectId: 'all' as const,
+      status: 'all' as const,
+    };
+  }, [filters]);
+
+  const filteredTasks = useMemo(
+    () => filterTasks(tasks, effectiveFilters).sort(sortTasks),
+    [tasks, effectiveFilters],
+  );
 
   const tasksByStatus = useMemo(() => {
     return {
@@ -112,23 +132,23 @@ function App() {
     };
   }, [filteredTasks]);
 
-  const globalPendingTasks = useMemo(() => {
+  const globalTasks = useMemo(() => {
     return filterTasks(tasks, {
       query: filters.query,
       projectId: 'all',
-      status: 'pending',
+      status: filters.due === 'today' ? 'all' : filters.status,
       due: filters.due,
     }).sort(sortTasks);
-  }, [tasks, filters.query, filters.due]);
+  }, [tasks, filters.query, filters.status, filters.due]);
 
   const dueTodayCount = useMemo(() => {
     return filterTasks(tasks, {
-      query: filters.query,
-      projectId: filters.projectId,
-      status: filters.status,
+      query: '',
+      projectId: 'all',
+      status: 'all',
       due: 'today',
     }).length;
-  }, [tasks, filters.query, filters.projectId, filters.status]);
+  }, [tasks]);
 
   const activeTask =
     taskModalState?.mode === 'edit' ? tasks.find((task) => task.id === taskModalState.taskId) : undefined;
@@ -217,16 +237,33 @@ function App() {
     setProjectModalState(null);
   };
 
-  const visibleTaskCount = viewMode === 'project' ? filteredTasks.length : globalPendingTasks.length;
+  const visibleTaskCount = viewMode === 'project' ? filteredTasks.length : globalTasks.length;
   const activeTrackingTaskId = activeTracking?.taskId ?? null;
   const activeTrackingTask = activeTrackingTaskId
     ? tasks.find((task) => task.id === activeTrackingTaskId)
     : undefined;
   const activeTrackingElapsed = activeTracking
-    ? formatMinutes((now.getTime() - new Date(activeTracking.startAt).getTime()) / 1000 / 60)
-    : '0m';
+    ? formatElapsedClock((now.getTime() - new Date(activeTracking.startAt).getTime()) / 1000)
+    : '00:00:00';
   const normalizedVisibleTaskCount =
     viewMode === 'dashboard' ? tasks.length : visibleTaskCount;
+
+  const handleFiltersChange = (payload: Partial<BoardFilters>) => {
+    actions.setFilters(payload);
+
+    if (payload.due === 'today' && viewMode === 'dashboard') {
+      setViewMode('global');
+    }
+  };
+
+  const handleToggleDueToday = () => {
+    const nextDue = filters.due === 'today' ? 'all' : 'today';
+    actions.setFilters({ due: nextDue });
+
+    if (nextDue === 'today') {
+      setViewMode('global');
+    }
+  };
 
   return (
     <>
@@ -235,7 +272,7 @@ function App() {
           projects={projects}
           tasks={tasks}
           filters={filters}
-          onFiltersChange={actions.setFilters}
+          onFiltersChange={handleFiltersChange}
           onResetFilters={actions.resetFilters}
           onCreateProject={() => setProjectModalState({ mode: 'create' })}
           onEditProject={(projectId) => setProjectModalState({ mode: 'edit', projectId })}
@@ -246,7 +283,7 @@ function App() {
           <HeaderBar
             query={filters.query}
             totalTasks={normalizedVisibleTaskCount}
-            onQueryChange={(value) => actions.setFilters({ query: value })}
+            onQueryChange={(value) => handleFiltersChange({ query: value })}
             onNewTask={() => setTaskModalState({ mode: 'create' })}
             onNewProject={() => setProjectModalState({ mode: 'create' })}
             activeTaskTitle={activeTrackingTask?.title ?? null}
@@ -262,7 +299,10 @@ function App() {
               className={`view-tab ${viewMode === 'project' ? 'view-tab-active' : ''}`}
               onClick={() => setViewMode('project')}
             >
-              Por proyecto
+              <span className="tab-content">
+                <FolderKanban size={12} aria-hidden="true" />
+                Por proyecto
+              </span>
             </button>
             <button
               type="button"
@@ -271,7 +311,10 @@ function App() {
               className={`view-tab ${viewMode === 'global' ? 'view-tab-active' : ''}`}
               onClick={() => setViewMode('global')}
             >
-              Tareas globales
+              <span className="tab-content">
+                <Globe2 size={12} aria-hidden="true" />
+                Tareas globales
+              </span>
             </button>
             <button
               type="button"
@@ -280,14 +323,20 @@ function App() {
               className={`view-tab ${viewMode === 'dashboard' ? 'view-tab-active' : ''}`}
               onClick={() => setViewMode('dashboard')}
             >
-              Dashboard
+              <span className="tab-content">
+                <LayoutDashboard size={12} aria-hidden="true" />
+                Dashboard
+              </span>
             </button>
             <button
               type="button"
               className={`view-filter ${filters.due === 'today' ? 'view-filter-active' : ''}`}
-              onClick={() => actions.setFilters({ due: filters.due === 'today' ? 'all' : 'today' })}
+              onClick={handleToggleDueToday}
             >
-              Vence hoy ({dueTodayCount})
+              <span className="tab-content">
+                <CalendarDays size={12} aria-hidden="true" />
+                Vence hoy ({dueTodayCount})
+              </span>
             </button>
           </div>
 
@@ -318,7 +367,7 @@ function App() {
             </div>
           ) : viewMode === 'global' ? (
             <GlobalPendingBoard
-              tasks={globalPendingTasks}
+              tasks={globalTasks}
               projectsById={projectById}
               subtasksByTaskId={subtasksByTaskId}
               onOpenTaskDetail={setTaskDetailId}

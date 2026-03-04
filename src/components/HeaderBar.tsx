@@ -1,3 +1,5 @@
+import { FolderPlus, Search, Square, SquarePlus } from 'lucide-react';
+
 interface HeaderBarProps {
   query: string;
   onQueryChange: (value: string) => void;
@@ -26,27 +28,50 @@ export const HeaderBar = ({
         <p>{totalTasks} tareas visibles</p>
         {activeTaskTitle && (
           <p className="tracking-banner">
-            Trabajando ahora: <strong>{activeTaskTitle}</strong> · {activeTrackingElapsed}
+            <span className="tracking-banner__label">Trabajando ahora:</span>
+            <strong className="tracking-banner__task">{activeTaskTitle}</strong>
+            <span className="tracking-banner__dot">·</span>
+            <span className="tracking-clock" aria-live="polite" aria-label="Tiempo transcurrido">
+              {activeTrackingElapsed}
+            </span>
+            <span className="tracking-arcade" aria-hidden="true">
+              <span className="tracking-arcade__ship" />
+              <span className="tracking-arcade__pixel tracking-arcade__pixel-1" />
+              <span className="tracking-arcade__pixel tracking-arcade__pixel-2" />
+              <span className="tracking-arcade__pixel tracking-arcade__pixel-3" />
+            </span>
             <button type="button" className="button button-danger button-small" onClick={onStopTracking}>
-              Detener
+              <span className="button-content">
+                <Square size={12} aria-hidden="true" />
+                Detener
+              </span>
             </button>
           </p>
         )}
       </div>
 
       <div className="topbar-actions">
-        <input
-          className="input"
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Buscar por título o descripción"
-          aria-label="Buscar tareas"
-        />
+        <div className="input-icon-wrap">
+          <Search size={12} aria-hidden="true" />
+          <input
+            className="input"
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            placeholder="Buscar por título o descripción"
+            aria-label="Buscar tareas"
+          />
+        </div>
         <button type="button" className="button button-secondary" onClick={onNewProject}>
-          Nuevo proyecto
+          <span className="button-content">
+            <FolderPlus size={12} aria-hidden="true" />
+            Nuevo proyecto
+          </span>
         </button>
         <button type="button" className="button button-primary" onClick={onNewTask}>
-          Nueva tarea
+          <span className="button-content">
+            <SquarePlus size={12} aria-hidden="true" />
+            Nueva tarea
+          </span>
         </button>
       </div>
     </header>

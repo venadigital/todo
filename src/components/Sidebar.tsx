@@ -1,3 +1,4 @@
+import { FolderKanban, Globe2, ListFilter, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import type { BoardFilters, Project, Task } from '../types';
 
 interface SidebarProps {
@@ -25,9 +26,14 @@ export const Sidebar = ({
     <aside className="sidebar">
       <section className="sidebar-section">
         <div className="sidebar-section__header">
-          <h2>Proyectos</h2>
+          <h2>
+            <span className="title-with-icon">
+              <FolderKanban size={12} aria-hidden="true" />
+              Proyectos
+            </span>
+          </h2>
           <button type="button" className="button button-primary button-small" onClick={onCreateProject}>
-            +
+            <Plus size={12} aria-hidden="true" />
           </button>
         </div>
 
@@ -36,7 +42,10 @@ export const Sidebar = ({
           className={`sidebar-project ${filters.projectId === 'all' ? 'sidebar-project-active' : ''}`}
           onClick={() => onFiltersChange({ projectId: 'all' })}
         >
-          <span>Todos</span>
+          <span className="sidebar-project-label">
+            <Globe2 size={11} aria-hidden="true" />
+            Todos
+          </span>
           <strong>{tasks.length}</strong>
         </button>
 
@@ -60,7 +69,7 @@ export const Sidebar = ({
                 onClick={() => onEditProject(project.id)}
                 aria-label={`Editar ${project.name}`}
               >
-                E
+                <Pencil size={12} aria-hidden="true" />
               </button>
               <button
                 type="button"
@@ -68,7 +77,7 @@ export const Sidebar = ({
                 onClick={() => onDeleteProject(project.id)}
                 aria-label={`Borrar ${project.name}`}
               >
-                X
+                <Trash2 size={12} aria-hidden="true" />
               </button>
             </div>
           );
@@ -76,7 +85,12 @@ export const Sidebar = ({
       </section>
 
       <section className="sidebar-section">
-        <h2>Filtros</h2>
+        <h2>
+          <span className="title-with-icon">
+            <ListFilter size={12} aria-hidden="true" />
+            Filtros
+          </span>
+        </h2>
 
         <label className="label">
           Estado
@@ -108,7 +122,10 @@ export const Sidebar = ({
         </label>
 
         <button type="button" className="button button-secondary" onClick={onResetFilters}>
-          Reiniciar filtros
+          <span className="button-content">
+            <RotateCcw size={12} aria-hidden="true" />
+            Reiniciar filtros
+          </span>
         </button>
       </section>
     </aside>

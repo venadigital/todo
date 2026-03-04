@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Pause, Pencil, Play, Plus, Trash2, X } from 'lucide-react';
 import { ProgressBar } from './ProgressBar';
 import type { FormEvent, KeyboardEvent } from 'react';
 import type { Project, Subtask, Task } from '../types';
@@ -88,14 +89,20 @@ export const TaskDetailModal = ({
               className={`button button-small ${isTracking ? 'button-danger' : 'button-secondary'}`}
               onClick={() => onToggleTracking(task.id)}
             >
-              {isTracking ? 'Detener tiempo' : 'Trabajar ahora'}
+              <span className="button-content">
+                {isTracking ? <Pause size={12} aria-hidden="true" /> : <Play size={12} aria-hidden="true" />}
+                {isTracking ? 'Detener tiempo' : 'Trabajar ahora'}
+              </span>
             </button>
             <button
               type="button"
               className="button button-secondary button-small"
               onClick={() => onOpenEditTask(task.id)}
             >
-              Editar tarea
+              <span className="button-content">
+                <Pencil size={12} aria-hidden="true" />
+                Editar tarea
+              </span>
             </button>
           </div>
         </header>
@@ -133,7 +140,10 @@ export const TaskDetailModal = ({
               placeholder="Nueva subtarea"
             />
             <button type="submit" className="button button-primary button-small">
-              Agregar
+              <span className="button-content">
+                <Plus size={12} aria-hidden="true" />
+                Agregar
+              </span>
             </button>
           </form>
 
@@ -172,7 +182,7 @@ export const TaskDetailModal = ({
                     className="button button-danger button-icon"
                     onClick={() => onDeleteSubtask(subtask.id)}
                   >
-                    X
+                    <Trash2 size={12} aria-hidden="true" />
                   </button>
                 </div>
               ))}
@@ -182,7 +192,10 @@ export const TaskDetailModal = ({
 
         <div className="modal-actions">
           <button type="button" className="button button-secondary" onClick={onClose}>
-            Cerrar
+            <span className="button-content">
+              <X size={12} aria-hidden="true" />
+              Cerrar
+            </span>
           </button>
         </div>
       </div>

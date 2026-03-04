@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
+import { Activity, CalendarRange, Clock3, Timer } from 'lucide-react';
 import {
   buildTaskTimeRows,
   formatMinutes,
@@ -58,7 +59,12 @@ export const TimeDashboard = ({
     <section className="dashboard-panel">
       <header className="dashboard-header">
         <div>
-          <h3>Dashboard de tiempo</h3>
+          <h3>
+            <span className="title-with-icon">
+              <Timer size={12} aria-hidden="true" />
+              Dashboard de tiempo
+            </span>
+          </h3>
           <p>
             {periodLabels[period]} · {format(range.start, 'yyyy-MM-dd')} a {format(range.end, 'yyyy-MM-dd')}
           </p>
@@ -81,15 +87,24 @@ export const TimeDashboard = ({
 
       <div className="dashboard-metrics">
         <article className="dashboard-metric">
-          <span>Total dedicado</span>
+          <span className="metric-title">
+            <Clock3 size={11} aria-hidden="true" />
+            Total dedicado
+          </span>
           <strong>{formatMinutes(totalMinutes)}</strong>
         </article>
         <article className="dashboard-metric">
-          <span>Tareas con registro</span>
+          <span className="metric-title">
+            <Activity size={11} aria-hidden="true" />
+            Tareas con registro
+          </span>
           <strong>{rows.length}</strong>
         </article>
         <article className="dashboard-metric">
-          <span>Sesiones registradas</span>
+          <span className="metric-title">
+            <CalendarRange size={11} aria-hidden="true" />
+            Sesiones registradas
+          </span>
           <strong>{timeSessions.length}</strong>
         </article>
       </div>

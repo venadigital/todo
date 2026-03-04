@@ -128,3 +128,14 @@ export const formatMinutes = (minutes: number): string => {
 
   return `${hours}h ${mins}m`;
 };
+
+const pad2 = (value: number): string => value.toString().padStart(2, '0');
+
+export const formatElapsedClock = (seconds: number): string => {
+  const safe = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const secs = safe % 60;
+
+  return `${pad2(hours)}:${pad2(minutes)}:${pad2(secs)}`;
+};

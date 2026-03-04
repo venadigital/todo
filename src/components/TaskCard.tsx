@@ -1,5 +1,6 @@
 import { CSS } from '@dnd-kit/utilities';
 import { useSortable } from '@dnd-kit/sortable';
+import { CalendarPlus2, Eye, Pause, Pencil, Play, Trash2 } from 'lucide-react';
 import { ProgressBar } from './ProgressBar';
 import type { Priority, Project, Subtask, Task, TaskStatus } from '../types';
 
@@ -135,29 +136,50 @@ export const TaskCard = ({
           className={`button button-small ${isTracking ? 'button-danger' : 'button-secondary'}`}
           onClick={() => onToggleTracking(task.id)}
         >
-          {isTracking ? 'Detener tiempo' : 'Trabajar ahora'}
+          <span className="button-content">
+            {isTracking ? <Pause size={12} aria-hidden="true" /> : <Play size={12} aria-hidden="true" />}
+            {isTracking ? 'Detener tiempo' : 'Trabajar ahora'}
+          </span>
         </button>
 
         <button type="button" className="button button-secondary button-small" onClick={() => onPostpone(task.id, 1)}>
-          +1d
+          <span className="button-content">
+            <CalendarPlus2 size={11} aria-hidden="true" />
+            +1d
+          </span>
         </button>
         <button type="button" className="button button-secondary button-small" onClick={() => onPostpone(task.id, 3)}>
-          +3d
+          <span className="button-content">
+            <CalendarPlus2 size={11} aria-hidden="true" />
+            +3d
+          </span>
         </button>
         <button type="button" className="button button-secondary button-small" onClick={() => onPostpone(task.id, 7)}>
-          +7d
+          <span className="button-content">
+            <CalendarPlus2 size={11} aria-hidden="true" />
+            +7d
+          </span>
         </button>
       </div>
 
       <div className="task-actions">
         <button type="button" className="button button-secondary" onClick={() => onOpenDetail(task.id)}>
-          Detalle
+          <span className="button-content">
+            <Eye size={12} aria-hidden="true" />
+            Detalle
+          </span>
         </button>
         <button type="button" className="button button-secondary" onClick={() => onEdit(task.id)}>
-          Editar
+          <span className="button-content">
+            <Pencil size={12} aria-hidden="true" />
+            Editar
+          </span>
         </button>
         <button type="button" className="button button-danger" onClick={() => onDelete(task.id)}>
-          Borrar
+          <span className="button-content">
+            <Trash2 size={12} aria-hidden="true" />
+            Borrar
+          </span>
         </button>
       </div>
     </article>

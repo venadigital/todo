@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTaskTimeRows, formatMinutes, getRangeForPeriod } from './timeTracking';
+import { buildTaskTimeRows, formatElapsedClock, formatMinutes, getRangeForPeriod } from './timeTracking';
 import type { ActiveTracking, Task, TimeSession } from '../types';
 
 const task = (id: string, title: string): Task => ({
@@ -54,5 +54,12 @@ describe('timeTracking helpers', () => {
     expect(formatMinutes(45)).toBe('45m');
     expect(formatMinutes(120)).toBe('2h');
     expect(formatMinutes(135)).toBe('2h 15m');
+  });
+
+  it('formatea reloj digital de tiempo transcurrido', () => {
+    expect(formatElapsedClock(0)).toBe('00:00:00');
+    expect(formatElapsedClock(59)).toBe('00:00:59');
+    expect(formatElapsedClock(65)).toBe('00:01:05');
+    expect(formatElapsedClock(3723)).toBe('01:02:03');
   });
 });
