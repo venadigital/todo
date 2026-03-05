@@ -12,7 +12,7 @@ const PORT = Number(process.env.PORT ?? 8787);
 const STORAGE_DRIVER = (process.env.STORAGE_DRIVER ?? '').toLowerCase();
 const DATA_FILE = process.env.DATA_FILE
   ? path.resolve(process.env.DATA_FILE)
-  : path.resolve(process.cwd(), 'data', 'todo-board-state.json');
+  : path.resolve(process.env.TMPDIR ?? '/tmp', 'todo-board-state.json');
 
 const DB_HOST = process.env.DB_HOST ?? '';
 const DB_PORT = Number(process.env.DB_PORT ?? 3306);
@@ -167,6 +167,19 @@ const createFileStore = async () => {
     },
     write: async (state) => {
       await writeFile(DATA_FILE, JSON.stringify(state, null, 2), 'utf-8');
+    },
+    close: async () => undefined,
+  };
+};
+
+const createMemoryStore = () => {
+  let snapshot = structuredClone(defaultState);
+
+  return {
+    kind: 'memory',
+    read: async () => snapshot,
+    write: async (state) => {
+      snapshot = structuredClone(state);
     },
     close: async () => undefined,
   };
@@ -529,7 +542,13 @@ const createMySqlStore = async () => {
   };
 };
 
-const stateStore = shouldUseMySql ? await createMySqlStore() : await createFileStore();
+let stateStore;
+try {
+  stateStore = shouldUseMySql ? await createMySqlStore() : await createFileStore();
+} catch (error) {
+  console.error('storage init failed, using memory fallback:', error);
+  stateStore = createMemoryStore();
+}
 
 let writeQueue = Promise.resolve();
 const writeState = async (state) => {
