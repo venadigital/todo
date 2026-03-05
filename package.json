@@ -8,9 +8,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "dev:api": "node server/index.js",
+    "dev:api": "node server.js",
     "dev:full": "concurrently \"npm run dev:api\" \"npm run dev -- --host 127.0.0.1 --port 5173\"",
-    "start": "node server/index.js",
+    "start": "node server.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
