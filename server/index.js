@@ -173,13 +173,13 @@ const createFileStore = async () => {
 };
 
 const createMemoryStore = () => {
-  let snapshot = structuredClone(defaultState);
+  let snapshot = JSON.parse(JSON.stringify(defaultState));
 
   return {
     kind: 'memory',
     read: async () => snapshot,
     write: async (state) => {
-      snapshot = structuredClone(state);
+      snapshot = JSON.parse(JSON.stringify(state));
     },
     close: async () => undefined,
   };
