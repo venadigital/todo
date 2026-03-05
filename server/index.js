@@ -595,6 +595,10 @@ if (existsSync(distPath)) {
 
     res.sendFile(path.join(distPath, 'index.html'));
   });
+} else {
+  app.get('/', (_req, res) => {
+    res.status(503).send('Frontend no compilado. Ejecuta build antes de iniciar.');
+  });
 }
 
 const server = app.listen(PORT, () => {

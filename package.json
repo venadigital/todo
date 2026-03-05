@@ -11,6 +11,7 @@
     "dev:api": "node server.cjs",
     "dev:full": "concurrently \"npm run dev:api\" \"npm run dev -- --host 127.0.0.1 --port 5173\"",
     "start": "node server.cjs",
+    "postinstall": "npm run build",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
