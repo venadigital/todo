@@ -15,6 +15,7 @@ export const createDefaultState = (): AppStateV1 => ({
   projects: [],
   tasks: [],
   subtasks: [],
+  quickTasks: [],
   filters: DEFAULT_FILTERS,
   timeSessions: [],
   activeTracking: null,
@@ -91,6 +92,20 @@ const isTimeSession = (value: unknown): boolean => {
   );
 };
 
+const isQuickTask = (value: unknown): boolean => {
+  if (!isObject(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.id === 'string' &&
+    typeof value.title === 'string' &&
+    typeof value.done === 'boolean' &&
+    typeof value.createdAt === 'string' &&
+    typeof value.updatedAt === 'string'
+  );
+};
+
 const isActiveTracking = (value: unknown): boolean => {
   if (!isObject(value)) {
     return false;
@@ -112,6 +127,9 @@ const migrateToV1 = (raw: unknown): AppStateV1 | null => {
   const subtasks = Array.isArray(raw.subtasks)
     ? raw.subtasks.filter(isSubtask)
     : base.subtasks;
+  const quickTasks = Array.isArray(raw.quickTasks)
+    ? raw.quickTasks.filter(isQuickTask)
+    : base.quickTasks;
   const timeSessions = Array.isArray(raw.timeSessions)
     ? raw.timeSessions.filter(isTimeSession)
     : base.timeSessions;
@@ -144,6 +162,7 @@ const migrateToV1 = (raw: unknown): AppStateV1 | null => {
     projects: projects as AppStateV1['projects'],
     tasks: tasks as AppStateV1['tasks'],
     subtasks: subtasks as AppStateV1['subtasks'],
+    quickTasks: quickTasks as AppStateV1['quickTasks'],
     filters,
     timeSessions: timeSessions as AppStateV1['timeSessions'],
     activeTracking: activeTracking as AppStateV1['activeTracking'],

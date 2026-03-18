@@ -54,11 +54,20 @@ export interface ActiveTracking {
   startAt: string;
 }
 
+export interface QuickTask {
+  id: string;
+  title: string;
+  done: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppStateV1 {
   version: 1;
   projects: Project[];
   tasks: Task[];
   subtasks: Subtask[];
+  quickTasks: QuickTask[];
   filters: BoardFilters;
   timeSessions: TimeSession[];
   activeTracking: ActiveTracking | null;

@@ -8,6 +8,7 @@ const emptyState = (): AppStateV1 => ({
   projects: [],
   tasks: [],
   subtasks: [],
+  quickTasks: [],
   filters: {
     query: '',
     projectId: 'all',
@@ -331,5 +332,31 @@ describe('createAppStore', () => {
     actions.toggleTracking(taskB);
     expect(store.getState().activeTracking).toBeNull();
     expect(store.getState().timeSessions).toHaveLength(2);
+  });
+
+  it('gestiona lista rapida de prioridades', () => {
+    const store = createAppStore(emptyState());
+    const { actions } = store.getState();
+
+    const firstId = actions.createQuickTask('Urgente A');
+    const secondId = actions.createQuickTask('Urgente B');
+
+    expect(firstId).toBeTruthy();
+    expect(secondId).toBeTruthy();
+    expect(store.getState().quickTasks).toHaveLength(2);
+
+    if (!firstId || !secondId) {
+      throw new Error('No se crearon quick tasks');
+    }
+
+    actions.toggleQuickTask(firstId);
+    expect(store.getState().quickTasks.find((quickTask) => quickTask.id === firstId)?.done).toBe(true);
+
+    actions.clearDoneQuickTasks();
+    expect(store.getState().quickTasks).toHaveLength(1);
+    expect(store.getState().quickTasks[0].id).toBe(secondId);
+
+    actions.deleteQuickTask(secondId);
+    expect(store.getState().quickTasks).toHaveLength(0);
   });
 });

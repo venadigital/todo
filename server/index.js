@@ -38,6 +38,7 @@ const defaultState = {
   projects: [],
   tasks: [],
   subtasks: [],
+  quickTasks: [],
   filters: DEFAULT_FILTERS,
   timeSessions: [],
   activeTracking: null,
@@ -119,6 +120,22 @@ const isStateShape = (raw) => {
   );
 
   if (!subtasksValid) {
+    return false;
+  }
+
+  if (
+    raw.quickTasks !== undefined &&
+    (!Array.isArray(raw.quickTasks) ||
+      raw.quickTasks.some(
+        (quickTask) =>
+          !isObject(quickTask) ||
+          typeof quickTask.id !== 'string' ||
+          typeof quickTask.title !== 'string' ||
+          typeof quickTask.done !== 'boolean' ||
+          typeof quickTask.createdAt !== 'string' ||
+          typeof quickTask.updatedAt !== 'string',
+      ))
+  ) {
     return false;
   }
 
@@ -274,6 +291,16 @@ const ensureMySqlSchema = async (pool) => {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS quick_tasks (
+      id VARCHAR(128) NOT NULL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      done TINYINT(1) NOT NULL,
+      created_at VARCHAR(40) NOT NULL,
+      updated_at VARCHAR(40) NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
   await pool.query(
     `
       INSERT INTO board_state (
@@ -373,6 +400,18 @@ const createMySqlStore = async () => {
         `,
       );
 
+      const [quickTaskRows] = await pool.query(
+        `
+          SELECT
+            id,
+            title,
+            done,
+            created_at AS createdAt,
+            updated_at AS updatedAt
+          FROM quick_tasks
+        `,
+      );
+
       const meta = metaRows[0] ?? {
         version: 1,
         filter_query: '',
@@ -395,6 +434,10 @@ const createMySqlStore = async () => {
         subtasks: subtaskRows.map((subtask) => ({
           ...subtask,
           done: Boolean(subtask.done),
+        })),
+        quickTasks: quickTaskRows.map((quickTask) => ({
+          ...quickTask,
+          done: Boolean(quickTask.done),
         })),
         filters: {
           query: String(meta.filter_query ?? ''),
@@ -454,6 +497,7 @@ const createMySqlStore = async () => {
         );
 
         await connection.query('DELETE FROM subtasks');
+        await connection.query('DELETE FROM quick_tasks');
         await connection.query('DELETE FROM time_sessions');
         await connection.query('DELETE FROM tasks');
         await connection.query('DELETE FROM projects');
@@ -513,6 +557,19 @@ const createMySqlStore = async () => {
             subtask.done ? 1 : 0,
             subtask.createdAt,
             subtask.updatedAt,
+          ]),
+        );
+
+        await insertMany(
+          connection,
+          'quick_tasks',
+          ['id', 'title', 'done', 'created_at', 'updated_at'],
+          (state.quickTasks ?? []).map((quickTask) => [
+            quickTask.id,
+            quickTask.title,
+            quickTask.done ? 1 : 0,
+            quickTask.createdAt,
+            quickTask.updatedAt,
           ]),
         );
 

@@ -13,6 +13,7 @@ import { ConfirmModal } from './components/ConfirmModal';
 import { GlobalPendingBoard } from './components/GlobalPendingBoard';
 import { HeaderBar } from './components/HeaderBar';
 import { ProjectModal } from './components/ProjectModal';
+import { QuickPriorityPanel } from './components/QuickPriorityPanel';
 import { Sidebar } from './components/Sidebar';
 import { TaskDetailModal } from './components/TaskDetailModal';
 import { TaskModal } from './components/TaskModal';
@@ -61,6 +62,7 @@ const hasAnyUserData = (state: AppStateV1): boolean => {
     state.projects.length > 0 ||
     state.tasks.length > 0 ||
     state.subtasks.length > 0 ||
+    state.quickTasks.length > 0 ||
     state.timeSessions.length > 0
   );
 };
@@ -70,6 +72,7 @@ function App() {
   const projects = useAppStore((state) => state.projects);
   const subtasks = useAppStore((state) => state.subtasks);
   const filters = useAppStore((state) => state.filters);
+  const quickTasks = useAppStore((state) => state.quickTasks);
   const timeSessions = useAppStore((state) => state.timeSessions);
   const activeTracking = useAppStore((state) => state.activeTracking);
   const actions = useAppStore((state) => state.actions);
@@ -195,6 +198,16 @@ function App() {
       due: filters.due,
     }).sort(sortTasks);
   }, [tasks, filters.query, filters.status, filters.due]);
+
+  const sortedQuickTasks = useMemo(() => {
+    return [...quickTasks].sort((a, b) => {
+      if (a.done !== b.done) {
+        return a.done ? 1 : -1;
+      }
+
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+  }, [quickTasks]);
 
   const dueTodayCount = useMemo(() => {
     return filterTasks(tasks, {
@@ -326,11 +339,12 @@ function App() {
       projects,
       tasks,
       subtasks,
+      quickTasks,
       filters,
       timeSessions,
       activeTracking,
     }),
-    [projects, tasks, subtasks, filters, timeSessions, activeTracking],
+    [projects, tasks, subtasks, quickTasks, filters, timeSessions, activeTracking],
   );
 
   useEffect(() => {
@@ -355,6 +369,7 @@ function App() {
           projects: localState.projects,
           tasks: localState.tasks,
           subtasks: localState.subtasks,
+          quickTasks: localState.quickTasks,
           filters: localState.filters,
           timeSessions: localState.timeSessions,
           activeTracking: localState.activeTracking,
@@ -491,6 +506,18 @@ function App() {
               </button>
             </div>
           </div>
+
+          {viewMode !== 'dashboard' && (
+            <QuickPriorityPanel
+              quickTasks={sortedQuickTasks}
+              onCreateQuickTask={(title) => {
+                actions.createQuickTask(title);
+              }}
+              onToggleQuickTask={actions.toggleQuickTask}
+              onDeleteQuickTask={actions.deleteQuickTask}
+              onClearDoneQuickTasks={actions.clearDoneQuickTasks}
+            />
+          )}
 
           {viewMode === 'project' ? (
             <div className="board-scroll">

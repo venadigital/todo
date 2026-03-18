@@ -51,6 +51,10 @@ export interface AppActions {
   stopTracking: () => void;
   toggleTracking: (taskId: string) => void;
   postponeTask: (taskId: string, days: number) => void;
+  createQuickTask: (title: string) => string | null;
+  toggleQuickTask: (quickTaskId: string) => void;
+  deleteQuickTask: (quickTaskId: string) => void;
+  clearDoneQuickTasks: () => void;
   createProject: (payload: ProjectDraft) => string;
   updateProject: (projectId: string, payload: ProjectDraft) => void;
   deleteProject: (projectId: string) => void;
@@ -150,7 +154,10 @@ const syncTasksForTaskId = (
 };
 
 export const createAppStore = (initialState?: AppStateV1) => {
-  const baseState = initialState ?? loadState();
+  const baseState = {
+    ...createDefaultState(),
+    ...(initialState ?? loadState()),
+  };
 
   return createStore<AppStoreState>((set, get) => ({
     ...baseState,
@@ -450,6 +457,60 @@ export const createAppStore = (initialState?: AppStateV1) => {
           };
         });
       },
+      createQuickTask: (title) => {
+        const trimmed = title.trim();
+        if (!trimmed) {
+          return null;
+        }
+
+        const quickTaskId = makeId('quick');
+
+        set((state) => {
+          const timestamp = nowIso();
+
+          return {
+            ...state,
+            quickTasks: [
+              {
+                id: quickTaskId,
+                title: trimmed,
+                done: false,
+                createdAt: timestamp,
+                updatedAt: timestamp,
+              },
+              ...state.quickTasks,
+            ],
+          };
+        });
+
+        return quickTaskId;
+      },
+      toggleQuickTask: (quickTaskId) => {
+        set((state) => ({
+          ...state,
+          quickTasks: state.quickTasks.map((quickTask) =>
+            quickTask.id === quickTaskId
+              ? {
+                  ...quickTask,
+                  done: !quickTask.done,
+                  updatedAt: nowIso(),
+                }
+              : quickTask,
+          ),
+        }));
+      },
+      deleteQuickTask: (quickTaskId) => {
+        set((state) => ({
+          ...state,
+          quickTasks: state.quickTasks.filter((quickTask) => quickTask.id !== quickTaskId),
+        }));
+      },
+      clearDoneQuickTasks: () => {
+        set((state) => ({
+          ...state,
+          quickTasks: state.quickTasks.filter((quickTask) => !quickTask.done),
+        }));
+      },
       createProject: (payload) => {
         const projectId = makeId('project');
 
@@ -536,6 +597,7 @@ store.subscribe((state) => {
     projects: state.projects,
     tasks: state.tasks,
     subtasks: state.subtasks,
+    quickTasks: state.quickTasks,
     filters: state.filters,
     timeSessions: state.timeSessions,
     activeTracking: state.activeTracking,
