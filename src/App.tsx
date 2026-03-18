@@ -15,6 +15,7 @@ import { HeaderBar } from './components/HeaderBar';
 import { ProjectModal } from './components/ProjectModal';
 import { QuickPriorityPanel } from './components/QuickPriorityPanel';
 import { Sidebar } from './components/Sidebar';
+import { TrackingFocusOverlay } from './components/TrackingFocusOverlay';
 import { TaskDetailModal } from './components/TaskDetailModal';
 import { TaskModal } from './components/TaskModal';
 import { TimeDashboard } from './components/TimeDashboard';
@@ -87,6 +88,7 @@ function App() {
   const remoteReadyRef = useRef(false);
   const remoteAvailableRef = useRef(false);
   const lastRemoteSnapshotRef = useRef('');
+  const shouldLockBodyScroll = isMobileSidebarOpen || Boolean(activeTracking);
 
   useEffect(() => {
     if (!activeTracking) {
@@ -101,7 +103,7 @@ function App() {
   }, [activeTracking]);
 
   useEffect(() => {
-    if (!isMobileSidebarOpen) {
+    if (!shouldLockBodyScroll) {
       return;
     }
 
@@ -111,22 +113,26 @@ function App() {
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [isMobileSidebarOpen]);
+  }, [shouldLockBodyScroll]);
 
   useEffect(() => {
-    if (!isMobileSidebarOpen) {
+    if (!isMobileSidebarOpen && !activeTracking) {
       return;
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (activeTracking) {
+          actions.stopTracking();
+        }
+
         setIsMobileSidebarOpen(false);
       }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isMobileSidebarOpen]);
+  }, [isMobileSidebarOpen, activeTracking, actions]);
 
   useEffect(() => {
     const onResize = () => {
@@ -623,6 +629,14 @@ function App() {
             confirmState.onConfirm();
             setConfirmState(null);
           }}
+        />
+      )}
+
+      {activeTrackingTask && (
+        <TrackingFocusOverlay
+          taskTitle={activeTrackingTask.title}
+          elapsed={activeTrackingElapsed}
+          onStop={actions.stopTracking}
         />
       )}
     </>
