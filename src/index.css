@@ -497,13 +497,19 @@ select {
 }
 
 .tracking-focus-scene {
-  --mountain-right: clamp(0.5rem, 4.5vw, 1.2rem);
+  --worker-width: 5rem;
+  --worker-height: 5.3rem;
+  --pair-gap: 0.12rem;
   --mountain-cell: 0.62rem;
   --mountain-gap: 0.08rem;
   --mountain-width: calc((var(--mountain-cell) * 8) + (var(--mountain-gap) * 7));
-  --worker-gap: -0.18rem;
+  --pair-width: calc(var(--worker-width) + var(--pair-gap) + var(--mountain-width));
+  --pair-left: calc(50% - (var(--pair-width) / 2));
+  --worker-left: var(--pair-left);
+  --mountain-left: calc(var(--pair-left) + var(--worker-width) + var(--pair-gap));
   --worker-bottom: 2.35rem;
-  --impact-right: calc(var(--mountain-right) + var(--mountain-width) - 0.9rem);
+  --mountain-bottom: 1.7rem;
+  --impact-left: calc(var(--mountain-left) - 0.74rem);
   --impact-bottom: 3rem;
   position: relative;
   border: 1px solid rgba(112, 214, 255, 0.4);
@@ -535,10 +541,10 @@ select {
 .tracking-focus-worker {
   --pixel: 0.34rem;
   position: absolute;
-  right: calc(var(--mountain-right) + var(--mountain-width) + var(--worker-gap));
+  left: var(--worker-left);
   bottom: var(--worker-bottom);
-  width: 5rem;
-  height: 5.3rem;
+  width: var(--worker-width);
+  height: var(--worker-height);
   transform-origin: bottom right;
   animation: tracking-worker-work 0.86s steps(4, end) infinite;
   z-index: 3;
@@ -695,8 +701,8 @@ select {
 
 .tracking-focus-mountain {
   position: absolute;
-  right: var(--mountain-right);
-  bottom: 1.7rem;
+  left: var(--mountain-left);
+  bottom: var(--mountain-bottom);
   width: var(--mountain-width);
   display: grid;
   grid-template-columns: repeat(8, var(--mountain-cell));
@@ -801,7 +807,7 @@ select {
 
 .tracking-focus-impact {
   position: absolute;
-  right: var(--impact-right);
+  left: var(--impact-left);
   bottom: var(--impact-bottom);
   width: 2.1rem;
   height: 1.8rem;
@@ -1962,10 +1968,13 @@ select.input {
   }
 
   .tracking-focus-scene {
-    --mountain-right: 0.55rem;
+    --worker-width: 4.6rem;
+    --worker-height: 5rem;
+    --pair-gap: 0.04rem;
     --mountain-cell: 0.56rem;
     --mountain-gap: 0.07rem;
     --worker-bottom: 2.1rem;
+    --mountain-bottom: 1.55rem;
     --impact-bottom: 2.7rem;
     min-height: 7.6rem;
     padding-top: 0.6rem;
@@ -1973,7 +1982,6 @@ select.input {
 
   .tracking-focus-worker {
     --pixel: 0.31rem;
-    --worker-gap: -0.24rem;
   }
 
   .tracking-focus-ground {
@@ -2091,17 +2099,19 @@ select.input {
   }
 
   .tracking-focus-scene {
-    --mountain-right: 0.35rem;
+    --worker-width: 4.1rem;
+    --worker-height: 4.6rem;
+    --pair-gap: -0.04rem;
     --mountain-cell: 0.5rem;
     --mountain-gap: 0.06rem;
     --worker-bottom: 1.8rem;
+    --mountain-bottom: 1.35rem;
     --impact-bottom: 2.35rem;
     min-height: 6.8rem;
   }
 
   .tracking-focus-worker {
     --pixel: 0.27rem;
-    --worker-gap: -0.28rem;
   }
 
   .tracking-focus-ground {
