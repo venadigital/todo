@@ -497,6 +497,14 @@ select {
 }
 
 .tracking-focus-scene {
+  --mountain-right: clamp(0.5rem, 4.5vw, 1.2rem);
+  --mountain-cell: 0.62rem;
+  --mountain-gap: 0.08rem;
+  --mountain-width: calc((var(--mountain-cell) * 8) + (var(--mountain-gap) * 7));
+  --worker-gap: -0.18rem;
+  --worker-bottom: 2.35rem;
+  --impact-right: calc(var(--mountain-right) + var(--mountain-width) - 0.9rem);
+  --impact-bottom: 3rem;
   position: relative;
   border: 1px solid rgba(112, 214, 255, 0.4);
   border-radius: 0.3rem;
@@ -527,11 +535,12 @@ select {
 .tracking-focus-worker {
   --pixel: 0.34rem;
   position: absolute;
-  left: clamp(0.5rem, 12%, 4rem);
-  bottom: 2.35rem;
+  right: calc(var(--mountain-right) + var(--mountain-width) + var(--worker-gap));
+  bottom: var(--worker-bottom);
   width: 5rem;
   height: 5.3rem;
-  animation: tracking-worker-bob 0.85s steps(2, end) infinite;
+  transform-origin: bottom right;
+  animation: tracking-worker-work 0.86s steps(4, end) infinite;
   z-index: 3;
 }
 
@@ -606,11 +615,12 @@ select {
 
 .tracking-focus-worker__arm-left {
   left: 1.32rem;
-  transform: rotate(10deg);
+  transform-origin: top center;
+  animation: tracking-support-arm 0.86s steps(4, end) infinite;
 }
 
 .tracking-focus-worker__arm-mining {
-  right: 1.18rem;
+  right: 1.08rem;
   transform-origin: top left;
   animation: tracking-mining-swing 0.86s steps(4, end) infinite;
 }
@@ -680,22 +690,37 @@ select {
     0 0 5px rgba(112, 214, 255, 0.33);
   transform: rotate(35deg);
   transform-origin: left center;
+  animation: tracking-pickaxe-flash 0.86s steps(4, end) infinite;
 }
 
 .tracking-focus-mountain {
-  --mountain-scale: 1;
   position: absolute;
-  right: clamp(0.5rem, 4.5vw, 1.2rem);
+  right: var(--mountain-right);
   bottom: 1.7rem;
-  width: min(9.2rem, 58%);
+  width: var(--mountain-width);
   display: grid;
-  grid-template-columns: repeat(8, 0.62rem);
-  grid-template-rows: repeat(5, 0.62rem);
-  gap: 0.08rem;
+  grid-template-columns: repeat(8, var(--mountain-cell));
+  grid-template-rows: repeat(5, var(--mountain-cell));
+  gap: var(--mountain-gap);
   justify-content: end;
   z-index: 2;
   transform-origin: right bottom;
   animation: tracking-mountain-shiver 0.86s steps(4, end) infinite;
+}
+
+.tracking-focus-mountain::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--mountain-cell) * 0.85);
+  top: calc(var(--mountain-cell) * 2.1);
+  width: calc(var(--mountain-cell) * 0.3);
+  height: calc(var(--mountain-cell) * 0.3);
+  background: #b8f9ff;
+  box-shadow:
+    calc(var(--mountain-cell) * 0.3) calc(var(--mountain-cell) * 0.45) 0 #6cf2d9,
+    calc(var(--mountain-cell) * 0.7) calc(var(--mountain-cell) * 0.75) 0 #9fff75;
+  opacity: 0;
+  animation: tracking-mountain-crack 0.86s steps(4, end) infinite;
 }
 
 .tracking-focus-mountain__block {
@@ -776,8 +801,8 @@ select {
 
 .tracking-focus-impact {
   position: absolute;
-  right: clamp(5.3rem, 31%, 8.4rem);
-  bottom: 3.2rem;
+  right: var(--impact-right);
+  bottom: var(--impact-bottom);
   width: 2.1rem;
   height: 1.8rem;
   pointer-events: none;
@@ -1937,25 +1962,18 @@ select.input {
   }
 
   .tracking-focus-scene {
+    --mountain-right: 0.55rem;
+    --mountain-cell: 0.56rem;
+    --mountain-gap: 0.07rem;
+    --worker-bottom: 2.1rem;
+    --impact-bottom: 2.7rem;
     min-height: 7.6rem;
     padding-top: 0.6rem;
   }
 
   .tracking-focus-worker {
     --pixel: 0.31rem;
-    left: 0.5rem;
-    bottom: 2.15rem;
-  }
-
-  .tracking-focus-mountain {
-    right: 0.55rem;
-    bottom: 1.55rem;
-    --mountain-scale: 0.92;
-  }
-
-  .tracking-focus-impact {
-    right: 4.7rem;
-    bottom: 2.8rem;
+    --worker-gap: -0.24rem;
   }
 
   .tracking-focus-ground {
@@ -2073,26 +2091,17 @@ select.input {
   }
 
   .tracking-focus-scene {
+    --mountain-right: 0.35rem;
+    --mountain-cell: 0.5rem;
+    --mountain-gap: 0.06rem;
+    --worker-bottom: 1.8rem;
+    --impact-bottom: 2.35rem;
     min-height: 6.8rem;
   }
 
   .tracking-focus-worker {
     --pixel: 0.27rem;
-    left: 0.35rem;
-    bottom: 1.85rem;
-  }
-
-  .tracking-focus-mountain {
-    right: 0.35rem;
-    bottom: 1.35rem;
-    --mountain-scale: 0.82;
-  }
-
-  .tracking-focus-impact {
-    right: 4rem;
-    bottom: 2.4rem;
-    transform: scale(0.88);
-    transform-origin: right bottom;
+    --worker-gap: -0.28rem;
   }
 
   .tracking-focus-ground {
@@ -2167,34 +2176,62 @@ select.input {
   }
 }
 
-@keyframes tracking-worker-bob {
+@keyframes tracking-worker-work {
   0%,
   100% {
-    transform: translateY(0);
+    transform: translate(0, 0);
+  }
+  24% {
+    transform: translate(0, -2px);
+  }
+  38% {
+    transform: translate(1px, -1px);
   }
   50% {
-    transform: translateY(-3px);
+    transform: translate(3px, 0);
+  }
+  62% {
+    transform: translate(2px, -1px);
+  }
+  78% {
+    transform: translate(1px, 0);
+  }
+}
+
+@keyframes tracking-support-arm {
+  0%,
+  100% {
+    transform: rotate(14deg);
+  }
+  42% {
+    transform: rotate(2deg);
+  }
+  52% {
+    transform: rotate(-6deg);
+  }
+  66% {
+    transform: rotate(6deg);
   }
 }
 
 @keyframes tracking-mining-swing {
   0% {
-    transform: rotate(-38deg) translate(0, 0);
+    transform: rotate(-52deg) translate(0, 0);
   }
   28% {
-    transform: rotate(-4deg) translate(0.02rem, -0.02rem);
+    transform: rotate(-16deg) translate(0.03rem, -0.02rem);
   }
-  36% {
-    transform: rotate(20deg) translate(0.08rem, 0.16rem);
+  40% {
+    transform: rotate(24deg) translate(0.16rem, 0.2rem);
   }
-  45% {
-    transform: rotate(22deg) translate(0.14rem, 0.22rem);
+  48% {
+    transform: rotate(30deg) translate(0.21rem, 0.24rem);
   }
   62% {
-    transform: rotate(-10deg) translate(0.02rem, 0.04rem);
+    transform: rotate(-6deg) translate(0.08rem, 0.1rem);
   }
   100% {
-    transform: rotate(-38deg) translate(0, 0);
+    transform: rotate(-52deg) translate(0, 0);
   }
 }
 
@@ -2202,40 +2239,73 @@ select.input {
   0%,
   25%,
   100% {
-    transform: translate(0, 0) scale(var(--mountain-scale, 1));
-  }
-  34% {
-    transform: translate(1px, -1px) scale(var(--mountain-scale, 1));
+    transform: translate(0, 0);
   }
   40% {
-    transform: translate(-1px, 1px) scale(var(--mountain-scale, 1));
+    transform: translate(1px, -1px);
   }
-  46% {
-    transform: translate(1px, 0) scale(var(--mountain-scale, 1));
+  48% {
+    transform: translate(-1px, 1px);
+  }
+  56% {
+    transform: translate(1px, 0);
+  }
+}
+
+@keyframes tracking-mountain-crack {
+  0%,
+  34%,
+  100% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.8);
+  }
+  42% {
+    opacity: 0.95;
+    transform: translate(0, -1px) scale(1);
+  }
+  54% {
+    opacity: 0.7;
+    transform: translate(1px, 0) scale(0.95);
   }
 }
 
 @keyframes tracking-impact-particle {
   0%,
-  28% {
+  34% {
     opacity: 0;
     transform: translate(0, 0) scale(0.6);
   }
-  38% {
+  44% {
     opacity: 1;
-    transform: translate(-2px, -5px) scale(1);
+    transform: translate(-1px, -4px) scale(1);
   }
-  55% {
+  62% {
     opacity: 1;
-    transform: translate(4px, -8px) scale(1);
+    transform: translate(5px, -9px) scale(1);
   }
-  86% {
-    opacity: 0.45;
-    transform: translate(8px, -10px) scale(0.7);
+  84% {
+    opacity: 0.35;
+    transform: translate(9px, -11px) scale(0.72);
   }
   100% {
     opacity: 0;
-    transform: translate(10px, -12px) scale(0.4);
+    transform: translate(11px, -13px) scale(0.42);
+  }
+}
+
+@keyframes tracking-pickaxe-flash {
+  0%,
+  34%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+      0 0 4px rgba(112, 214, 255, 0.25);
+  }
+  44%,
+  52% {
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.4) inset,
+      0 0 8px rgba(136, 255, 62, 0.42);
   }
 }
 
