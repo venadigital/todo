@@ -52,6 +52,7 @@ export interface AppActions {
   toggleTracking: (taskId: string) => void;
   postponeTask: (taskId: string, days: number) => void;
   createQuickTask: (title: string) => string | null;
+  promoteQuickTaskToTask: (quickTaskId: string, projectId: string | null) => string | null;
   toggleQuickTask: (quickTaskId: string) => void;
   deleteQuickTask: (quickTaskId: string) => void;
   clearDoneQuickTasks: () => void;
@@ -484,6 +485,52 @@ export const createAppStore = (initialState?: AppStateV1) => {
         });
 
         return quickTaskId;
+      },
+      promoteQuickTaskToTask: (quickTaskId, projectId) => {
+        let nextTaskId: string | null = null;
+
+        set((state) => {
+          const quickTask = state.quickTasks.find((item) => item.id === quickTaskId);
+          if (!quickTask) {
+            return state;
+          }
+
+          if (projectId && !state.projects.some((project) => project.id === projectId)) {
+            return state;
+          }
+
+          const timestamp = nowIso();
+          const normalizedTitle = quickTask.title.trim();
+          if (!normalizedTitle) {
+            return state;
+          }
+
+          const createdTaskId = makeId('task');
+          nextTaskId = createdTaskId;
+
+          return {
+            ...state,
+            quickTasks: state.quickTasks.filter((item) => item.id !== quickTaskId),
+            tasks: [
+              {
+                id: createdTaskId,
+                title: normalizedTitle,
+                description: '',
+                projectId,
+                status: quickTask.done ? 'done' : 'pending',
+                progress: quickTask.done ? 100 : 0,
+                priority: 'high',
+                dueDate: null,
+                postponedCount: 0,
+                createdAt: timestamp,
+                updatedAt: timestamp,
+              },
+              ...state.tasks,
+            ],
+          };
+        });
+
+        return nextTaskId;
       },
       toggleQuickTask: (quickTaskId) => {
         set((state) => ({

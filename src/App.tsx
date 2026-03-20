@@ -515,9 +515,13 @@ function App() {
 
           {viewMode !== 'dashboard' && (
             <QuickPriorityPanel
+              projects={projects}
               quickTasks={sortedQuickTasks}
               onCreateQuickTask={(title) => {
                 actions.createQuickTask(title);
+              }}
+              onAssignQuickTaskToProject={(quickTaskId, projectId) => {
+                actions.promoteQuickTaskToTask(quickTaskId, projectId);
               }}
               onToggleQuickTask={actions.toggleQuickTask}
               onDeleteQuickTask={actions.deleteQuickTask}

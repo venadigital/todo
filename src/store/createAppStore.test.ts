@@ -359,4 +359,28 @@ describe('createAppStore', () => {
     actions.deleteQuickTask(secondId);
     expect(store.getState().quickTasks).toHaveLength(0);
   });
+
+  it('convierte una prioridad rapida en tarea asignada a proyecto', () => {
+    const store = createAppStore(emptyState());
+    const { actions } = store.getState();
+
+    const projectId = actions.createProject({ name: 'Marketing', color: '#22c55e' });
+    const quickTaskId = actions.createQuickTask('Grabar reel urgente');
+
+    if (!quickTaskId) {
+      throw new Error('No se creo quick task');
+    }
+
+    const createdTaskId = actions.promoteQuickTaskToTask(quickTaskId, projectId);
+    expect(createdTaskId).toBeTruthy();
+    expect(store.getState().quickTasks).toHaveLength(0);
+    expect(store.getState().tasks).toHaveLength(1);
+
+    const createdTask = store.getState().tasks[0];
+    expect(createdTask.title).toBe('Grabar reel urgente');
+    expect(createdTask.projectId).toBe(projectId);
+    expect(createdTask.status).toBe('pending');
+    expect(createdTask.progress).toBe(0);
+    expect(createdTask.priority).toBe('high');
+  });
 });
