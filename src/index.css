@@ -1028,21 +1028,22 @@ select {
 }
 
 .quick-priority-dropzones {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   gap: 0.35rem;
 }
 
 .quick-priority-dropzone {
-  min-height: 1.65rem;
+  min-height: 2rem;
   border: 1px solid rgba(110, 166, 128, 0.48);
   border-radius: var(--radius-sm);
   background: rgba(19, 28, 17, 0.95);
   color: #e5ffe3;
   font-size: 0.62rem;
-  padding: 0.26rem 0.48rem;
-  display: inline-flex;
+  padding: 0.32rem 0.48rem;
+  display: flex;
   align-items: center;
+  width: 100%;
   gap: 0.28rem;
   transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
 }
@@ -1058,6 +1059,11 @@ select {
   border-color: rgba(136, 255, 62, 0.94);
   box-shadow: 0 0 0 1px rgba(136, 255, 62, 0.25), 0 0 10px rgba(136, 255, 62, 0.2);
   transform: translateY(-1px);
+}
+
+.quick-priority-panel-dragging .quick-priority-dropzone {
+  border-color: rgba(136, 255, 62, 0.62);
+  box-shadow: 0 0 0 1px rgba(136, 255, 62, 0.1);
 }
 
 .quick-priority-panel__empty {
@@ -1092,8 +1098,8 @@ select {
 }
 
 .quick-priority-item__drag-handle {
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 1.65rem;
+  height: 1.65rem;
   border: 1px solid rgba(132, 206, 113, 0.34);
   border-radius: 4px;
   background: rgba(17, 24, 16, 0.92);
@@ -1102,6 +1108,8 @@ select {
   align-items: center;
   justify-content: center;
   cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
 
 .quick-priority-item__drag-handle:active {
@@ -1111,6 +1119,27 @@ select {
 .quick-priority-item__drag-handle:hover {
   border-color: rgba(136, 255, 62, 0.66);
   color: #deffcc;
+}
+
+.quick-priority-drag-overlay {
+  min-height: 1.7rem;
+  max-width: min(80vw, 360px);
+  border: 1px solid rgba(136, 255, 62, 0.85);
+  border-radius: var(--radius-sm);
+  background: rgba(20, 29, 16, 0.98);
+  color: #efffe4;
+  font-size: 0.66rem;
+  padding: 0.35rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42), 0 0 10px rgba(136, 255, 62, 0.18);
+}
+
+.quick-priority-drag-overlay span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .quick-priority-item__title {
@@ -1997,11 +2026,12 @@ select.input {
   }
 
   .quick-priority-dropzones {
-    gap: 0.28rem;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.3rem;
   }
 
   .quick-priority-dropzone {
-    min-height: 1.8rem;
+    min-height: 2rem;
   }
 
   .quick-priority-panel__footer {
@@ -2165,6 +2195,10 @@ select.input {
 
   .quick-priority-item .button {
     width: auto;
+  }
+
+  .quick-priority-dropzones {
+    grid-template-columns: 1fr;
   }
 
   .task-detail-subtasks__create {

@@ -23,7 +23,7 @@ import { formatElapsedClock } from './lib/timeTracking';
 import { isRemoteSyncEnabled, loadRemoteState, saveRemoteState } from './lib/remoteState';
 import { appStoreApi, useAppStore } from './store/createAppStore';
 import { filterTasks } from './store/selectors';
-import { CalendarDays, FolderKanban, Globe2, LayoutDashboard } from 'lucide-react';
+import { CalendarDays, CheckCheck, FolderKanban, Globe2, LayoutDashboard } from 'lucide-react';
 import type { DragEndEvent } from '@dnd-kit/core';
 import type { AppStateV1, BoardFilters, TaskStatus } from './types';
 
@@ -197,13 +197,28 @@ function App() {
   }, [filteredTasks]);
 
   const globalTasks = useMemo(() => {
+    const baseTasks = filterTasks(tasks, {
+      query: filters.query,
+      projectId: 'all',
+      status: filters.status,
+      due: filters.due,
+    });
+
+    if (filters.status === 'done') {
+      return baseTasks.sort(sortTasks);
+    }
+
+    return baseTasks.filter((task) => task.status !== 'done').sort(sortTasks);
+  }, [tasks, filters.query, filters.status, filters.due]);
+
+  const completedOnlyCount = useMemo(() => {
     return filterTasks(tasks, {
       query: filters.query,
       projectId: 'all',
-      status: filters.due === 'today' ? 'all' : filters.status,
+      status: 'done',
       due: filters.due,
-    }).sort(sortTasks);
-  }, [tasks, filters.query, filters.status, filters.due]);
+    }).length;
+  }, [tasks, filters.query, filters.due]);
 
   const sortedQuickTasks = useMemo(() => {
     return [...quickTasks].sort((a, b) => {
@@ -337,6 +352,12 @@ function App() {
     if (nextDue === 'today') {
       setViewMode('global');
     }
+  };
+
+  const handleToggleCompletedOnly = () => {
+    const nextStatus: BoardFilters['status'] = filters.status === 'done' ? 'all' : 'done';
+    actions.setFilters({ status: nextStatus });
+    setViewMode('global');
   };
 
   const syncStatePayload = useMemo<AppStateV1>(
@@ -481,7 +502,12 @@ function App() {
                 role="tab"
                 aria-selected={viewMode === 'global'}
                 className={`view-tab ${viewMode === 'global' ? 'view-tab-active' : ''}`}
-                onClick={() => setViewMode('global')}
+                onClick={() => {
+                  setViewMode('global');
+                  if (filters.status === 'done') {
+                    actions.setFilters({ status: 'all' });
+                  }
+                }}
               >
                 <span className="tab-content">
                   <Globe2 size={12} aria-hidden="true" />
@@ -508,6 +534,16 @@ function App() {
                 <span className="tab-content">
                   <CalendarDays size={12} aria-hidden="true" />
                   Vence hoy ({dueTodayCount})
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`view-filter ${filters.status === 'done' ? 'view-filter-active' : ''}`}
+                onClick={handleToggleCompletedOnly}
+              >
+                <span className="tab-content">
+                  <CheckCheck size={12} aria-hidden="true" />
+                  Completadas ({completedOnlyCount})
                 </span>
               </button>
             </div>

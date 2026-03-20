@@ -1,16 +1,17 @@
 import { useMemo, useState } from 'react';
 import {
-  closestCenter,
+  DragOverlay,
   DndContext,
   PointerSensor,
+  pointerWithin,
+  rectIntersection,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
 import { Flame, FolderKanban, GripVertical, ListTodo, Plus, Trash2 } from 'lucide-react';
-import type { DragEndEvent } from '@dnd-kit/core';
+import type { CollisionDetection, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import type { FormEvent } from 'react';
 import type { Project, QuickTask } from '../types';
 
@@ -40,7 +41,7 @@ const quickTaskDragId = (quickTaskId: string) => `quick-task-${quickTaskId}`;
 const quickDropId = (projectId: string | null) => `quick-drop-${projectId ?? 'none'}`;
 
 const QuickPriorityItem = ({ quickTask, onToggleQuickTask, onDeleteQuickTask }: QuickPriorityItemProps) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: quickTaskDragId(quickTask.id),
     data: {
       type: 'quick-task',
@@ -49,8 +50,7 @@ const QuickPriorityItem = ({ quickTask, onToggleQuickTask, onDeleteQuickTask }: 
   });
 
   const style = {
-    transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.75 : 1,
+    opacity: isDragging ? 0.35 : 1,
   };
 
   return (
@@ -112,9 +112,10 @@ export const QuickPriorityPanel = ({
   onClearDoneQuickTasks,
 }: QuickPriorityPanelProps) => {
   const [title, setTitle] = useState('');
+  const [draggingQuickTaskId, setDraggingQuickTaskId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
+      activationConstraint: { distance: 3 },
     }),
   );
 
@@ -124,6 +125,10 @@ export const QuickPriorityPanel = ({
   );
 
   const doneCount = quickTasks.length - pendingCount;
+  const draggingQuickTask = useMemo(
+    () => quickTasks.find((quickTask) => quickTask.id === draggingQuickTaskId) ?? null,
+    [quickTasks, draggingQuickTaskId],
+  );
   const dropTargets = useMemo(
     () => [
       { id: quickDropId(null), label: 'Sin proyecto', color: '#8f9eb5' },
@@ -147,7 +152,32 @@ export const QuickPriorityPanel = ({
     setTitle('');
   };
 
+  const collisionDetection: CollisionDetection = (args) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions;
+    }
+
+    return rectIntersection(args);
+  };
+
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    const activeId = String(active.id);
+    if (!activeId.startsWith('quick-task-')) {
+      setDraggingQuickTaskId(null);
+      return;
+    }
+
+    setDraggingQuickTaskId(activeId.replace('quick-task-', ''));
+  };
+
+  const handleDragCancel = () => {
+    setDraggingQuickTaskId(null);
+  };
+
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    setDraggingQuickTaskId(null);
+
     if (!over) {
       return;
     }
@@ -165,8 +195,17 @@ export const QuickPriorityPanel = ({
   };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <section className="quick-priority-panel" aria-label="Lista rápida de prioridades">
+    <DndContext
+      sensors={sensors}
+      collisionDetection={collisionDetection}
+      onDragStart={handleDragStart}
+      onDragCancel={handleDragCancel}
+      onDragEnd={handleDragEnd}
+    >
+      <section
+        className={`quick-priority-panel ${draggingQuickTaskId ? 'quick-priority-panel-dragging' : ''}`}
+        aria-label="Lista rápida de prioridades"
+      >
         <header className="quick-priority-panel__header">
           <h3>
             <span className="title-with-icon">
@@ -233,6 +272,14 @@ export const QuickPriorityPanel = ({
           </div>
         )}
       </section>
+      <DragOverlay>
+        {draggingQuickTask ? (
+          <div className="quick-priority-drag-overlay">
+            <GripVertical size={12} aria-hidden="true" />
+            <span>{draggingQuickTask.title}</span>
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 };
