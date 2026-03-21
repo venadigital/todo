@@ -62,11 +62,24 @@ export interface QuickTask {
   updatedAt: string;
 }
 
+export type NoteColor = 'lime' | 'cyan' | 'amber' | 'violet' | 'rose';
+
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  color: NoteColor;
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppStateV1 {
   version: 1;
   projects: Project[];
   tasks: Task[];
   subtasks: Subtask[];
+  notes: Note[];
   quickTasks: QuickTask[];
   filters: BoardFilters;
   timeSessions: TimeSession[];

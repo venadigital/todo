@@ -1,4 +1,4 @@
-import type { AppStateV1, BoardFilters } from '../types';
+import type { AppStateV1, BoardFilters, NoteColor } from '../types';
 
 const STORAGE_KEY = 'todo-board-state';
 const VERSION = 1;
@@ -15,6 +15,7 @@ export const createDefaultState = (): AppStateV1 => ({
   projects: [],
   tasks: [],
   subtasks: [],
+  notes: [],
   quickTasks: [],
   filters: DEFAULT_FILTERS,
   timeSessions: [],
@@ -106,6 +107,29 @@ const isQuickTask = (value: unknown): boolean => {
   );
 };
 
+const isNoteColor = (value: unknown): value is NoteColor =>
+  value === 'lime' ||
+  value === 'cyan' ||
+  value === 'amber' ||
+  value === 'violet' ||
+  value === 'rose';
+
+const isNote = (value: unknown): boolean => {
+  if (!isObject(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.id === 'string' &&
+    typeof value.title === 'string' &&
+    typeof value.content === 'string' &&
+    isNoteColor(value.color) &&
+    typeof value.pinned === 'boolean' &&
+    typeof value.createdAt === 'string' &&
+    typeof value.updatedAt === 'string'
+  );
+};
+
 const isActiveTracking = (value: unknown): boolean => {
   if (!isObject(value)) {
     return false;
@@ -127,6 +151,7 @@ const migrateToV1 = (raw: unknown): AppStateV1 | null => {
   const subtasks = Array.isArray(raw.subtasks)
     ? raw.subtasks.filter(isSubtask)
     : base.subtasks;
+  const notes = Array.isArray(raw.notes) ? raw.notes.filter(isNote) : base.notes;
   const quickTasks = Array.isArray(raw.quickTasks)
     ? raw.quickTasks.filter(isQuickTask)
     : base.quickTasks;
@@ -162,6 +187,7 @@ const migrateToV1 = (raw: unknown): AppStateV1 | null => {
     projects: projects as AppStateV1['projects'],
     tasks: tasks as AppStateV1['tasks'],
     subtasks: subtasks as AppStateV1['subtasks'],
+    notes: notes as AppStateV1['notes'],
     quickTasks: quickTasks as AppStateV1['quickTasks'],
     filters,
     timeSessions: timeSessions as AppStateV1['timeSessions'],

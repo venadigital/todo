@@ -4,6 +4,7 @@ import { createDefaultState, loadState, saveState } from '../lib/storage';
 import type {
   AppStateV1,
   BoardFilters,
+  NoteColor,
   ProjectDraft,
   SubtaskDraft,
   TaskDraft,
@@ -31,6 +32,8 @@ const defaultFilters: BoardFilters = {
   due: 'all',
 };
 
+const noteColorPalette: NoteColor[] = ['lime', 'cyan', 'amber', 'violet', 'rose'];
+
 export interface TaskEditorPayload extends TaskDraft {
   id?: string;
   subtasks: SubtaskDraft[];
@@ -56,6 +59,13 @@ export interface AppActions {
   toggleQuickTask: (quickTaskId: string) => void;
   deleteQuickTask: (quickTaskId: string) => void;
   clearDoneQuickTasks: () => void;
+  createNote: (payload?: { title?: string; content?: string; color?: NoteColor }) => string;
+  updateNote: (
+    noteId: string,
+    payload: { title?: string; content?: string; color?: NoteColor },
+  ) => void;
+  deleteNote: (noteId: string) => void;
+  toggleNotePinned: (noteId: string) => void;
   createProject: (payload: ProjectDraft) => string;
   updateProject: (projectId: string, payload: ProjectDraft) => void;
   deleteProject: (projectId: string) => void;
@@ -130,6 +140,9 @@ const createTimeSession = (taskId: string, startAt: string, endAt: string) => ({
   startAt,
   endAt,
 });
+
+const isValidNoteColor = (value: unknown): value is NoteColor =>
+  typeof value === 'string' && noteColorPalette.includes(value as NoteColor);
 
 const syncTasksForTaskId = (
   tasks: AppStateV1['tasks'],
@@ -558,6 +571,75 @@ export const createAppStore = (initialState?: AppStateV1) => {
           quickTasks: state.quickTasks.filter((quickTask) => !quickTask.done),
         }));
       },
+      createNote: (payload) => {
+        const noteId = makeId('note');
+
+        set((state) => {
+          const timestamp = nowIso();
+
+          return {
+            ...state,
+            notes: [
+              {
+                id: noteId,
+                title: payload?.title?.trim() || 'Nueva nota',
+                content: payload?.content?.trim() || '',
+                color: isValidNoteColor(payload?.color) ? payload.color : 'lime',
+                pinned: false,
+                createdAt: timestamp,
+                updatedAt: timestamp,
+              },
+              ...state.notes,
+            ],
+          };
+        });
+
+        return noteId;
+      },
+      updateNote: (noteId, payload) => {
+        set((state) => ({
+          ...state,
+          notes: state.notes.map((note) => {
+            if (note.id !== noteId) {
+              return note;
+            }
+
+            return {
+              ...note,
+              title:
+                typeof payload.title === 'string'
+                  ? payload.title.slice(0, 120)
+                  : note.title,
+              content:
+                typeof payload.content === 'string'
+                  ? payload.content.slice(0, 1200)
+                  : note.content,
+              color: isValidNoteColor(payload.color) ? payload.color : note.color,
+              updatedAt: nowIso(),
+            };
+          }),
+        }));
+      },
+      deleteNote: (noteId) => {
+        set((state) => ({
+          ...state,
+          notes: state.notes.filter((note) => note.id !== noteId),
+        }));
+      },
+      toggleNotePinned: (noteId) => {
+        set((state) => ({
+          ...state,
+          notes: state.notes.map((note) =>
+            note.id === noteId
+              ? {
+                  ...note,
+                  pinned: !note.pinned,
+                  updatedAt: nowIso(),
+                }
+              : note,
+          ),
+        }));
+      },
       createProject: (payload) => {
         const projectId = makeId('project');
 
@@ -644,6 +726,7 @@ store.subscribe((state) => {
     projects: state.projects,
     tasks: state.tasks,
     subtasks: state.subtasks,
+    notes: state.notes,
     quickTasks: state.quickTasks,
     filters: state.filters,
     timeSessions: state.timeSessions,

@@ -1183,6 +1183,150 @@ select {
   font-size: 0.62rem;
 }
 
+.notes-board {
+  margin-top: 0.3rem;
+  border: 1px solid rgba(136, 255, 62, 0.5);
+  border-radius: var(--radius-md);
+  background: linear-gradient(160deg, rgba(16, 21, 15, 0.92), rgba(9, 12, 9, 0.95));
+  padding: 0.62rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.62rem;
+}
+
+.notes-board__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  align-items: flex-start;
+  border-bottom: 1px dashed rgba(136, 255, 62, 0.4);
+  padding-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.notes-board__header h3 {
+  font-size: 0.78rem;
+  color: #e9ffd8;
+}
+
+.notes-board__header p {
+  margin-top: 0.2rem;
+  color: #afc58a;
+  font-size: 0.62rem;
+}
+
+.notes-board__empty {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.notes-board__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.55rem;
+}
+
+.note-card {
+  border: 1px solid rgba(136, 255, 62, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.note-card-lime {
+  background: linear-gradient(180deg, rgba(43, 73, 27, 0.94), rgba(18, 34, 13, 0.97));
+}
+
+.note-card-cyan {
+  background: linear-gradient(180deg, rgba(19, 54, 69, 0.94), rgba(11, 28, 36, 0.97));
+}
+
+.note-card-amber {
+  background: linear-gradient(180deg, rgba(81, 56, 23, 0.94), rgba(35, 24, 10, 0.97));
+}
+
+.note-card-violet {
+  background: linear-gradient(180deg, rgba(55, 35, 81, 0.94), rgba(23, 15, 36, 0.97));
+}
+
+.note-card-rose {
+  background: linear-gradient(180deg, rgba(78, 32, 53, 0.94), rgba(31, 13, 21, 0.97));
+}
+
+.note-card__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.32rem;
+}
+
+.note-card__actions .button {
+  flex: 1 1 0;
+}
+
+.note-card__title {
+  font-size: 0.68rem;
+  min-height: 1.72rem;
+}
+
+.note-card__content {
+  min-height: 6.25rem;
+  font-size: 0.66rem;
+  line-height: 1.35;
+}
+
+.note-card__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.35rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.note-card__palette {
+  display: inline-flex;
+  gap: 0.28rem;
+}
+
+.note-color-option {
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  cursor: pointer;
+}
+
+.note-color-option-active {
+  box-shadow: 0 0 0 1px rgba(136, 255, 62, 0.78), 0 0 6px rgba(136, 255, 62, 0.25);
+}
+
+.note-card-lime.note-color-option {
+  background: linear-gradient(180deg, #8ae94b, #4c8a2a);
+}
+
+.note-card-cyan.note-color-option {
+  background: linear-gradient(180deg, #5ee8ff, #287e8f);
+}
+
+.note-card-amber.note-color-option {
+  background: linear-gradient(180deg, #ffd270, #a8721f);
+}
+
+.note-card-violet.note-color-option {
+  background: linear-gradient(180deg, #c39cff, #6f46a4);
+}
+
+.note-card-rose.note-color-option {
+  background: linear-gradient(180deg, #ff8ab2, #984064);
+}
+
+.note-card__updated {
+  color: rgba(235, 245, 255, 0.78);
+  font-size: 0.58rem;
+}
+
 .global-board {
   margin-top: 0.3rem;
   border: 1px solid var(--line);
@@ -1903,6 +2047,7 @@ select.input {
 .board-column,
 .task-card,
 .global-board,
+.notes-board,
 .dashboard-panel,
 .modal {
   box-shadow:
@@ -2128,6 +2273,18 @@ select.input {
     grid-template-columns: 1fr;
   }
 
+  .notes-board__grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .note-card__actions {
+    flex-direction: column;
+  }
+
+  .note-card__actions .button {
+    width: 100%;
+  }
+
   .modal-backdrop {
     padding: 0.7rem;
   }
@@ -2198,6 +2355,10 @@ select.input {
   }
 
   .quick-priority-dropzones {
+    grid-template-columns: 1fr;
+  }
+
+  .notes-board__grid {
     grid-template-columns: 1fr;
   }
 

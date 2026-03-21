@@ -12,6 +12,7 @@ import { Column } from './components/Column';
 import { ConfirmModal } from './components/ConfirmModal';
 import { GlobalPendingBoard } from './components/GlobalPendingBoard';
 import { HeaderBar } from './components/HeaderBar';
+import { NotesBoard } from './components/NotesBoard';
 import { ProjectModal } from './components/ProjectModal';
 import { QuickPriorityPanel } from './components/QuickPriorityPanel';
 import { Sidebar } from './components/Sidebar';
@@ -23,7 +24,14 @@ import { formatElapsedClock } from './lib/timeTracking';
 import { isRemoteSyncEnabled, loadRemoteState, saveRemoteState } from './lib/remoteState';
 import { appStoreApi, useAppStore } from './store/createAppStore';
 import { filterTasks } from './store/selectors';
-import { CalendarDays, CheckCheck, FolderKanban, Globe2, LayoutDashboard } from 'lucide-react';
+import {
+  CalendarDays,
+  CheckCheck,
+  FolderKanban,
+  Globe2,
+  LayoutDashboard,
+  StickyNote,
+} from 'lucide-react';
 import type { DragEndEvent } from '@dnd-kit/core';
 import type { AppStateV1, BoardFilters, TaskStatus } from './types';
 
@@ -49,7 +57,7 @@ const sortTasks = (a: { priority: keyof typeof priorityWeight; updatedAt: string
 
 type TaskModalState = { mode: 'create' } | { mode: 'edit'; taskId: string } | null;
 type ProjectModalState = { mode: 'create' } | { mode: 'edit'; projectId: string } | null;
-type BoardViewMode = 'project' | 'global' | 'dashboard';
+type BoardViewMode = 'project' | 'global' | 'dashboard' | 'notes';
 
 interface ConfirmState {
   title: string;
@@ -63,6 +71,7 @@ const hasAnyUserData = (state: AppStateV1): boolean => {
     state.projects.length > 0 ||
     state.tasks.length > 0 ||
     state.subtasks.length > 0 ||
+    state.notes.length > 0 ||
     state.quickTasks.length > 0 ||
     state.timeSessions.length > 0
   );
@@ -72,6 +81,7 @@ function App() {
   const tasks = useAppStore((state) => state.tasks);
   const projects = useAppStore((state) => state.projects);
   const subtasks = useAppStore((state) => state.subtasks);
+  const notes = useAppStore((state) => state.notes);
   const filters = useAppStore((state) => state.filters);
   const quickTasks = useAppStore((state) => state.quickTasks);
   const timeSessions = useAppStore((state) => state.timeSessions);
@@ -230,6 +240,20 @@ function App() {
     });
   }, [quickTasks]);
 
+  const visibleNotesCount = useMemo(() => {
+    const normalizedQuery = filters.query.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return notes.length;
+    }
+
+    return notes.filter((note) => {
+      return (
+        note.title.toLowerCase().includes(normalizedQuery) ||
+        note.content.toLowerCase().includes(normalizedQuery)
+      );
+    }).length;
+  }, [notes, filters.query]);
+
   const dueTodayCount = useMemo(() => {
     return filterTasks(tasks, {
       query: '',
@@ -335,7 +359,11 @@ function App() {
     ? formatElapsedClock((now.getTime() - new Date(activeTracking.startAt).getTime()) / 1000)
     : '00:00:00';
   const normalizedVisibleTaskCount =
-    viewMode === 'dashboard' ? tasks.length : visibleTaskCount;
+    viewMode === 'dashboard'
+      ? tasks.length
+      : viewMode === 'notes'
+        ? visibleNotesCount
+        : visibleTaskCount;
 
   const handleFiltersChange = (payload: Partial<BoardFilters>) => {
     actions.setFilters(payload);
@@ -366,12 +394,13 @@ function App() {
       projects,
       tasks,
       subtasks,
+      notes,
       quickTasks,
       filters,
       timeSessions,
       activeTracking,
     }),
-    [projects, tasks, subtasks, quickTasks, filters, timeSessions, activeTracking],
+    [projects, tasks, subtasks, notes, quickTasks, filters, timeSessions, activeTracking],
   );
 
   useEffect(() => {
@@ -396,6 +425,7 @@ function App() {
           projects: localState.projects,
           tasks: localState.tasks,
           subtasks: localState.subtasks,
+          notes: localState.notes,
           quickTasks: localState.quickTasks,
           filters: localState.filters,
           timeSessions: localState.timeSessions,
@@ -528,6 +558,18 @@ function App() {
               </button>
               <button
                 type="button"
+                role="tab"
+                aria-selected={viewMode === 'notes'}
+                className={`view-tab ${viewMode === 'notes' ? 'view-tab-active' : ''}`}
+                onClick={() => setViewMode('notes')}
+              >
+                <span className="tab-content">
+                  <StickyNote size={12} aria-hidden="true" />
+                  Notas
+                </span>
+              </button>
+              <button
+                type="button"
                 className={`view-filter ${filters.due === 'today' ? 'view-filter-active' : ''}`}
                 onClick={handleToggleDueToday}
               >
@@ -549,7 +591,7 @@ function App() {
             </div>
           </div>
 
-          {viewMode !== 'dashboard' && (
+          {(viewMode === 'project' || viewMode === 'global') && (
             <QuickPriorityPanel
               projects={projects}
               quickTasks={sortedQuickTasks}
@@ -604,13 +646,24 @@ function App() {
               onToggleTracking={actions.toggleTracking}
               onPostpone={actions.postponeTask}
             />
-          ) : (
+          ) : viewMode === 'dashboard' ? (
             <TimeDashboard
               tasks={tasks}
               projectsById={projectById}
               timeSessions={timeSessions}
               activeTracking={activeTracking}
               onOpenTask={setTaskDetailId}
+            />
+          ) : (
+            <NotesBoard
+              notes={notes}
+              query={filters.query}
+              onCreateNote={() => {
+                actions.createNote();
+              }}
+              onUpdateNote={actions.updateNote}
+              onDeleteNote={actions.deleteNote}
+              onToggleNotePinned={actions.toggleNotePinned}
             />
           )}
         </main>

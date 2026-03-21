@@ -33,11 +33,14 @@ const DEFAULT_FILTERS = {
   due: 'all',
 };
 
+const NOTE_COLORS = ['lime', 'cyan', 'amber', 'violet', 'rose'];
+
 const defaultState = {
   version: 1,
   projects: [],
   tasks: [],
   subtasks: [],
+  notes: [],
   quickTasks: [],
   filters: DEFAULT_FILTERS,
   timeSessions: [],
@@ -49,6 +52,7 @@ const isTaskStatus = (value) => value === 'pending' || value === 'in_progress' |
 const isPriority = (value) => value === 'low' || value === 'medium' || value === 'high';
 const isDueFilter = (value) =>
   value === 'all' || value === 'overdue' || value === 'today' || value === 'this_week' || value === 'no_date';
+const isNoteColor = (value) => NOTE_COLORS.includes(value);
 
 const isStateShape = (raw) => {
   if (!isObject(raw) || raw.version !== 1) {
@@ -124,6 +128,24 @@ const isStateShape = (raw) => {
   }
 
   if (
+    raw.notes !== undefined &&
+    (!Array.isArray(raw.notes) ||
+      raw.notes.some(
+        (note) =>
+          !isObject(note) ||
+          typeof note.id !== 'string' ||
+          typeof note.title !== 'string' ||
+          typeof note.content !== 'string' ||
+          !isNoteColor(note.color) ||
+          typeof note.pinned !== 'boolean' ||
+          typeof note.createdAt !== 'string' ||
+          typeof note.updatedAt !== 'string',
+      ))
+  ) {
+    return false;
+  }
+
+  if (
     raw.quickTasks !== undefined &&
     (!Array.isArray(raw.quickTasks) ||
       raw.quickTasks.some(
@@ -163,6 +185,29 @@ const isStateShape = (raw) => {
   );
 };
 
+const normalizeStateSnapshot = (raw) => {
+  if (!isStateShape(raw)) {
+    return JSON.parse(JSON.stringify(defaultState));
+  }
+
+  return {
+    version: 1,
+    projects: raw.projects,
+    tasks: raw.tasks,
+    subtasks: raw.subtasks,
+    notes: Array.isArray(raw.notes) ? raw.notes : [],
+    quickTasks: Array.isArray(raw.quickTasks) ? raw.quickTasks : [],
+    filters: {
+      query: raw.filters.query,
+      projectId: raw.filters.projectId,
+      status: raw.filters.status,
+      due: raw.filters.due,
+    },
+    timeSessions: raw.timeSessions,
+    activeTracking: raw.activeTracking ?? null,
+  };
+};
+
 const createFileStore = async () => {
   const dir = path.dirname(DATA_FILE);
   await mkdir(dir, { recursive: true });
@@ -177,13 +222,13 @@ const createFileStore = async () => {
       try {
         const raw = await readFile(DATA_FILE, 'utf-8');
         const parsed = JSON.parse(raw);
-        return isStateShape(parsed) ? parsed : defaultState;
+        return normalizeStateSnapshot(parsed);
       } catch {
-        return defaultState;
+        return JSON.parse(JSON.stringify(defaultState));
       }
     },
     write: async (state) => {
-      await writeFile(DATA_FILE, JSON.stringify(state, null, 2), 'utf-8');
+      await writeFile(DATA_FILE, JSON.stringify(normalizeStateSnapshot(state), null, 2), 'utf-8');
     },
     close: async () => undefined,
   };
@@ -196,7 +241,7 @@ const createMemoryStore = () => {
     kind: 'memory',
     read: async () => snapshot,
     write: async (state) => {
-      snapshot = JSON.parse(JSON.stringify(state));
+      snapshot = normalizeStateSnapshot(state);
     },
     close: async () => undefined,
   };
@@ -298,6 +343,20 @@ const ensureMySqlSchema = async (pool) => {
       done TINYINT(1) NOT NULL,
       created_at VARCHAR(40) NOT NULL,
       updated_at VARCHAR(40) NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notes (
+      id VARCHAR(128) NOT NULL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      content TEXT NOT NULL,
+      color VARCHAR(24) NOT NULL,
+      pinned TINYINT(1) NOT NULL,
+      created_at VARCHAR(40) NOT NULL,
+      updated_at VARCHAR(40) NOT NULL,
+      INDEX idx_notes_pinned (pinned),
+      INDEX idx_notes_updated_at (updated_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
 
@@ -412,6 +471,20 @@ const createMySqlStore = async () => {
         `,
       );
 
+      const [noteRows] = await pool.query(
+        `
+          SELECT
+            id,
+            title,
+            content,
+            color,
+            pinned,
+            created_at AS createdAt,
+            updated_at AS updatedAt
+          FROM notes
+        `,
+      );
+
       const meta = metaRows[0] ?? {
         version: 1,
         filter_query: '',
@@ -439,6 +512,10 @@ const createMySqlStore = async () => {
           ...quickTask,
           done: Boolean(quickTask.done),
         })),
+        notes: noteRows.map((note) => ({
+          ...note,
+          pinned: Boolean(note.pinned),
+        })),
         filters: {
           query: String(meta.filter_query ?? ''),
           projectId: String(meta.filter_project_id ?? 'all'),
@@ -455,9 +532,10 @@ const createMySqlStore = async () => {
             : null,
       };
 
-      return isStateShape(parsedState) ? parsedState : defaultState;
+      return normalizeStateSnapshot(parsedState);
     },
     write: async (state) => {
+      const normalizedState = normalizeStateSnapshot(state);
       const connection = await pool.getConnection();
 
       try {
@@ -486,18 +564,19 @@ const createMySqlStore = async () => {
               active_tracking_start_at = VALUES(active_tracking_start_at)
           `,
           [
-            state.version,
-            state.filters.query,
-            state.filters.projectId,
-            state.filters.status,
-            state.filters.due,
-            state.activeTracking?.taskId ?? null,
-            state.activeTracking?.startAt ?? null,
+            normalizedState.version,
+            normalizedState.filters.query,
+            normalizedState.filters.projectId,
+            normalizedState.filters.status,
+            normalizedState.filters.due,
+            normalizedState.activeTracking?.taskId ?? null,
+            normalizedState.activeTracking?.startAt ?? null,
           ],
         );
 
         await connection.query('DELETE FROM subtasks');
         await connection.query('DELETE FROM quick_tasks');
+        await connection.query('DELETE FROM notes');
         await connection.query('DELETE FROM time_sessions');
         await connection.query('DELETE FROM tasks');
         await connection.query('DELETE FROM projects');
@@ -506,7 +585,7 @@ const createMySqlStore = async () => {
           connection,
           'projects',
           ['id', 'name', 'color', 'created_at', 'updated_at'],
-          state.projects.map((project) => [
+          normalizedState.projects.map((project) => [
             project.id,
             project.name,
             project.color,
@@ -531,7 +610,7 @@ const createMySqlStore = async () => {
             'created_at',
             'updated_at',
           ],
-          state.tasks.map((task) => [
+          normalizedState.tasks.map((task) => [
             task.id,
             task.title,
             task.description,
@@ -550,7 +629,7 @@ const createMySqlStore = async () => {
           connection,
           'subtasks',
           ['id', 'task_id', 'title', 'done', 'created_at', 'updated_at'],
-          state.subtasks.map((subtask) => [
+          normalizedState.subtasks.map((subtask) => [
             subtask.id,
             subtask.taskId,
             subtask.title,
@@ -564,7 +643,7 @@ const createMySqlStore = async () => {
           connection,
           'quick_tasks',
           ['id', 'title', 'done', 'created_at', 'updated_at'],
-          (state.quickTasks ?? []).map((quickTask) => [
+          (normalizedState.quickTasks ?? []).map((quickTask) => [
             quickTask.id,
             quickTask.title,
             quickTask.done ? 1 : 0,
@@ -575,9 +654,24 @@ const createMySqlStore = async () => {
 
         await insertMany(
           connection,
+          'notes',
+          ['id', 'title', 'content', 'color', 'pinned', 'created_at', 'updated_at'],
+          (normalizedState.notes ?? []).map((note) => [
+            note.id,
+            note.title,
+            note.content,
+            note.color,
+            note.pinned ? 1 : 0,
+            note.createdAt,
+            note.updatedAt,
+          ]),
+        );
+
+        await insertMany(
+          connection,
           'time_sessions',
           ['id', 'task_id', 'start_at', 'end_at'],
-          state.timeSessions.map((session) => [
+          normalizedState.timeSessions.map((session) => [
             session.id,
             session.taskId,
             session.startAt,
@@ -636,7 +730,7 @@ app.put('/api/state', async (req, res) => {
     return res.status(400).json({ error: 'INVALID_STATE_PAYLOAD' });
   }
 
-  await writeState(incoming);
+  await writeState(normalizeStateSnapshot(incoming));
   return res.status(204).end();
 });
 

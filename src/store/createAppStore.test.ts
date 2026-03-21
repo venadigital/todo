@@ -8,6 +8,7 @@ const emptyState = (): AppStateV1 => ({
   projects: [],
   tasks: [],
   subtasks: [],
+  notes: [],
   quickTasks: [],
   filters: {
     query: '',
@@ -382,5 +383,38 @@ describe('createAppStore', () => {
     expect(createdTask.status).toBe('pending');
     expect(createdTask.progress).toBe(0);
     expect(createdTask.priority).toBe('high');
+  });
+
+  it('gestiona notas globales con color y fijado', () => {
+    const store = createAppStore(emptyState());
+    const { actions } = store.getState();
+
+    const noteId = actions.createNote({
+      title: 'Idea principal',
+      content: 'Validar propuesta con equipo',
+      color: 'violet',
+    });
+
+    expect(noteId).toBeTruthy();
+    expect(store.getState().notes).toHaveLength(1);
+    expect(store.getState().notes[0].color).toBe('violet');
+    expect(store.getState().notes[0].pinned).toBe(false);
+
+    actions.updateNote(noteId, {
+      title: 'Idea validada',
+      content: 'Crear tareas del sprint',
+      color: 'amber',
+    });
+
+    const updatedNote = store.getState().notes[0];
+    expect(updatedNote.title).toBe('Idea validada');
+    expect(updatedNote.content).toBe('Crear tareas del sprint');
+    expect(updatedNote.color).toBe('amber');
+
+    actions.toggleNotePinned(noteId);
+    expect(store.getState().notes[0].pinned).toBe(true);
+
+    actions.deleteNote(noteId);
+    expect(store.getState().notes).toHaveLength(0);
   });
 });
