@@ -5,6 +5,7 @@ import type {
   AppStateV1,
   BoardFilters,
   NoteColor,
+  Priority,
   ProjectDraft,
   SubtaskDraft,
   TaskDraft,
@@ -66,6 +67,7 @@ export interface AppActions {
   ) => void;
   deleteNote: (noteId: string) => void;
   toggleNotePinned: (noteId: string) => void;
+  setTaskPriority: (taskId: string, priority: Priority) => void;
   createProject: (payload: ProjectDraft) => string;
   updateProject: (projectId: string, payload: ProjectDraft) => void;
   deleteProject: (projectId: string) => void;
@@ -637,6 +639,20 @@ export const createAppStore = (initialState?: AppStateV1) => {
                   updatedAt: nowIso(),
                 }
               : note,
+          ),
+        }));
+      },
+      setTaskPriority: (taskId, priority) => {
+        set((state) => ({
+          ...state,
+          tasks: state.tasks.map((task) =>
+            task.id === taskId
+              ? {
+                  ...task,
+                  priority,
+                  updatedAt: nowIso(),
+                }
+              : task,
           ),
         }));
       },

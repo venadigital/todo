@@ -13,6 +13,7 @@ import { ConfirmModal } from './components/ConfirmModal';
 import { GlobalPendingBoard } from './components/GlobalPendingBoard';
 import { HeaderBar } from './components/HeaderBar';
 import { NotesBoard } from './components/NotesBoard';
+import { PriorityBoard } from './components/PriorityBoard';
 import { ProjectModal } from './components/ProjectModal';
 import { QuickPriorityPanel } from './components/QuickPriorityPanel';
 import { Sidebar } from './components/Sidebar';
@@ -25,6 +26,7 @@ import { isRemoteSyncEnabled, loadRemoteState, saveRemoteState } from './lib/rem
 import { appStoreApi, useAppStore } from './store/createAppStore';
 import { filterTasks } from './store/selectors';
 import {
+  ArrowUpWideNarrow,
   CalendarDays,
   CheckCheck,
   FolderKanban,
@@ -57,7 +59,7 @@ const sortTasks = (a: { priority: keyof typeof priorityWeight; updatedAt: string
 
 type TaskModalState = { mode: 'create' } | { mode: 'edit'; taskId: string } | null;
 type ProjectModalState = { mode: 'create' } | { mode: 'edit'; projectId: string } | null;
-type BoardViewMode = 'project' | 'global' | 'dashboard' | 'notes';
+type BoardViewMode = 'project' | 'global' | 'priority' | 'dashboard' | 'notes';
 
 interface ConfirmState {
   title: string;
@@ -221,6 +223,10 @@ function App() {
     return baseTasks.filter((task) => task.status !== 'done').sort(sortTasks);
   }, [tasks, filters.query, filters.status, filters.due]);
 
+  const priorityTasks = useMemo(() => {
+    return filterTasks(tasks, filters).filter((task) => task.status !== 'done');
+  }, [tasks, filters]);
+
   const completedOnlyCount = useMemo(() => {
     return filterTasks(tasks, {
       query: filters.query,
@@ -363,6 +369,8 @@ function App() {
       ? tasks.length
       : viewMode === 'notes'
         ? visibleNotesCount
+        : viewMode === 'priority'
+          ? priorityTasks.length
         : visibleTaskCount;
 
   const handleFiltersChange = (payload: Partial<BoardFilters>) => {
@@ -377,7 +385,7 @@ function App() {
     const nextDue = filters.due === 'today' ? 'all' : 'today';
     actions.setFilters({ due: nextDue });
 
-    if (nextDue === 'today') {
+    if (nextDue === 'today' && viewMode === 'dashboard') {
       setViewMode('global');
     }
   };
@@ -559,6 +567,18 @@ function App() {
               <button
                 type="button"
                 role="tab"
+                aria-selected={viewMode === 'priority'}
+                className={`view-tab ${viewMode === 'priority' ? 'view-tab-active' : ''}`}
+                onClick={() => setViewMode('priority')}
+              >
+                <span className="tab-content">
+                  <ArrowUpWideNarrow size={12} aria-hidden="true" />
+                  Priorización
+                </span>
+              </button>
+              <button
+                type="button"
+                role="tab"
                 aria-selected={viewMode === 'notes'}
                 className={`view-tab ${viewMode === 'notes' ? 'view-tab-active' : ''}`}
                 onClick={() => setViewMode('notes')}
@@ -645,6 +665,21 @@ function App() {
               activeTrackingTaskId={activeTrackingTaskId}
               onToggleTracking={actions.toggleTracking}
               onPostpone={actions.postponeTask}
+            />
+          ) : viewMode === 'priority' ? (
+            <PriorityBoard
+              tasks={priorityTasks}
+              projectsById={projectById}
+              subtasksByTaskId={subtasksByTaskId}
+              onOpenTaskDetail={setTaskDetailId}
+              onEditTask={(taskId) => setTaskModalState({ mode: 'edit', taskId })}
+              onDeleteTask={openDeleteTaskConfirm}
+              onStatusChange={actions.setTaskStatus}
+              onSubtaskDoneChange={actions.setSubtaskDone}
+              activeTrackingTaskId={activeTrackingTaskId}
+              onToggleTracking={actions.toggleTracking}
+              onPostpone={actions.postponeTask}
+              onPriorityChange={actions.setTaskPriority}
             />
           ) : viewMode === 'dashboard' ? (
             <TimeDashboard

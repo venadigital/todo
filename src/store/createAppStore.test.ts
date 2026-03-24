@@ -202,6 +202,34 @@ describe('createAppStore', () => {
     expect(task.status).toBe('done');
   });
 
+  it('cambia prioridad sin afectar estado ni avance', () => {
+    const store = createAppStore(emptyState());
+    const { actions } = store.getState();
+
+    const taskId = actions.saveTask({
+      title: 'Priorizar pipeline',
+      description: '',
+      projectId: null,
+      status: 'in_progress',
+      progress: 45,
+      priority: 'low',
+      dueDate: null,
+      subtasks: [],
+    });
+
+    const before = store.getState().tasks[0];
+    actions.setTaskPriority(taskId, 'high');
+    const after = store.getState().tasks[0];
+
+    expect(after.priority).toBe('high');
+    expect(after.status).toBe(before.status);
+    expect(after.progress).toBe(before.progress);
+    expect(after.dueDate).toBe(before.dueDate);
+    expect(new Date(after.updatedAt).getTime()).toBeGreaterThanOrEqual(
+      new Date(before.updatedAt).getTime(),
+    );
+  });
+
   it('actualiza subtareas desde el tablero y recalcula avance/estado', () => {
     const store = createAppStore(emptyState());
     const { actions } = store.getState();
