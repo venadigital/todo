@@ -666,22 +666,21 @@ export const createAppStore = (initialState?: AppStateV1) => {
             return state;
           }
 
-          const includedIdSet = new Set(orderedTaskIds);
-          const tasksInPriority = state.tasks
-            .filter((task) => task.priority === priority && includedIdSet.has(task.id))
+          const allPriorityTasks = state.tasks
+            .filter((task) => task.priority === priority)
             .sort(sortByUpdatedAtDesc);
 
-          if (tasksInPriority.length <= 1) {
+          if (allPriorityTasks.length <= 1) {
             return state;
           }
 
-          const existingIds = new Set(tasksInPriority.map((task) => task.id));
+          const existingIds = new Set(allPriorityTasks.map((task) => task.id));
           const orderedVisibleIds = orderedTaskIds.filter((taskId) => existingIds.has(taskId));
           if (orderedVisibleIds.length <= 1) {
             return state;
           }
 
-          const missingIds = tasksInPriority
+          const missingIds = allPriorityTasks
             .map((task) => task.id)
             .filter((taskId) => !orderedVisibleIds.includes(taskId));
           const finalOrder = [...orderedVisibleIds, ...missingIds];

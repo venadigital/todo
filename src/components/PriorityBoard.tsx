@@ -183,6 +183,25 @@ export const PriorityBoard = ({
 
     if (targetPriority === sourceTask.priority) {
       const laneTasks = tasksByPriority[sourceTask.priority];
+      const laneTaskIds = laneTasks.map((task) => task.id);
+
+      if (overId.startsWith('priority-column-')) {
+        if (!laneTaskIds.includes(taskId)) {
+          return;
+        }
+
+        const reorderedTaskIds = laneTaskIds.filter((currentId) => currentId !== taskId);
+        reorderedTaskIds.push(taskId);
+
+        const alreadyAtEnd = laneTaskIds[laneTaskIds.length - 1] === taskId;
+        if (alreadyAtEnd) {
+          return;
+        }
+
+        onReorderWithinPriority(sourceTask.priority, reorderedTaskIds);
+        return;
+      }
+
       const activeIndex = laneTasks.findIndex((task) => task.id === taskId);
       const overIndex = laneTasks.findIndex((task) => task.id === overId);
 
