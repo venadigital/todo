@@ -324,6 +324,55 @@ describe('createAppStore', () => {
     expect(ordered).toEqual([secondTaskId, firstTaskId, hiddenTaskId]);
   });
 
+  it('al reordenar con un solo id visible lo deja primero y conserva ocultas al final', () => {
+    const store = createAppStore(emptyState());
+    const { actions } = store.getState();
+
+    const hiddenTaskA = actions.saveTask({
+      title: 'Task Oculta A',
+      description: '',
+      projectId: null,
+      status: 'pending',
+      progress: 0,
+      priority: 'medium',
+      dueDate: null,
+      subtasks: [],
+    });
+    const visibleTaskId = actions.saveTask({
+      title: 'Task Visible',
+      description: '',
+      projectId: null,
+      status: 'pending',
+      progress: 0,
+      priority: 'medium',
+      dueDate: null,
+      subtasks: [],
+    });
+    const hiddenTaskB = actions.saveTask({
+      title: 'Task Oculta B',
+      description: '',
+      projectId: null,
+      status: 'pending',
+      progress: 0,
+      priority: 'medium',
+      dueDate: null,
+      subtasks: [],
+    });
+
+    actions.reorderTasksWithinPriority('medium', [visibleTaskId]);
+
+    const ordered = store
+      .getState()
+      .tasks
+      .filter((task) => task.priority === 'medium')
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .map((task) => task.id);
+
+    expect(ordered[0]).toBe(visibleTaskId);
+    expect(ordered).toContain(hiddenTaskA);
+    expect(ordered).toContain(hiddenTaskB);
+  });
+
   it('actualiza subtareas desde el tablero y recalcula avance/estado', () => {
     const store = createAppStore(emptyState());
     const { actions } = store.getState();

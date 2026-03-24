@@ -58,9 +58,54 @@ const priorityColumns: Array<{ priority: Priority; title: string }> = [
 ];
 
 const priorityColumnId = (priority: Priority) => `priority-column-${priority}`;
+const priorities: Priority[] = ['high', 'medium', 'low'];
 
 const sortByUpdatedAtDesc = (a: Task, b: Task) =>
   new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+
+const isPriority = (value: unknown): value is Priority =>
+  typeof value === 'string' && priorities.includes(value as Priority);
+
+const getPriorityFromColumnId = (value: unknown): Priority | null => {
+  if (typeof value !== 'string' || !value.startsWith('priority-column-')) {
+    return null;
+  }
+
+  const parsed = value.replace('priority-column-', '');
+  return isPriority(parsed) ? parsed : null;
+};
+
+const resolveTargetPriority = (over: DragEndEvent['over'], tasksById: Map<string, Task>): Priority | null => {
+  if (!over) {
+    return null;
+  }
+
+  const overData = over.data.current as
+    | {
+        priority?: unknown;
+        sortable?: {
+          containerId?: unknown;
+        };
+      }
+    | undefined;
+
+  if (isPriority(overData?.priority)) {
+    return overData.priority;
+  }
+
+  const overId = String(over.id);
+  const taskByOverId = tasksById.get(overId);
+  if (taskByOverId) {
+    return taskByOverId.priority;
+  }
+
+  const fromContainerId = getPriorityFromColumnId(overData?.sortable?.containerId);
+  if (fromContainerId) {
+    return fromContainerId;
+  }
+
+  return getPriorityFromColumnId(overId);
+};
 
 const PriorityColumn = ({
   priority,
@@ -162,20 +207,14 @@ export const PriorityBoard = ({
     }
 
     const taskId = String(active.id);
-    const sourceTask = tasks.find((task) => task.id === taskId);
+    const tasksById = new Map(tasks.map((task) => [task.id, task]));
+    const sourceTask = tasksById.get(taskId);
     if (!sourceTask) {
       return;
     }
 
     const overId = String(over.id);
-    let targetPriority: Priority | null = null;
-
-    if (overId.startsWith('priority-column-')) {
-      targetPriority = overId.replace('priority-column-', '') as Priority;
-    } else {
-      const targetTask = tasks.find((task) => task.id === overId);
-      targetPriority = targetTask?.priority ?? null;
-    }
+    const targetPriority = resolveTargetPriority(over, tasksById);
 
     if (!targetPriority) {
       return;
@@ -184,41 +223,48 @@ export const PriorityBoard = ({
     if (targetPriority === sourceTask.priority) {
       const laneTasks = tasksByPriority[sourceTask.priority];
       const laneTaskIds = laneTasks.map((task) => task.id);
-
-      if (overId.startsWith('priority-column-')) {
-        if (!laneTaskIds.includes(taskId)) {
-          return;
-        }
-
-        const reorderedTaskIds = laneTaskIds.filter((currentId) => currentId !== taskId);
-        reorderedTaskIds.push(taskId);
-
-        const alreadyAtEnd = laneTaskIds[laneTaskIds.length - 1] === taskId;
-        if (alreadyAtEnd) {
-          return;
-        }
-
-        onReorderWithinPriority(sourceTask.priority, reorderedTaskIds);
-        return;
-      }
-
       const activeIndex = laneTasks.findIndex((task) => task.id === taskId);
-      const overIndex = laneTasks.findIndex((task) => task.id === overId);
-
-      if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) {
+      if (activeIndex < 0) {
         return;
       }
 
-      const reorderedTaskIds = arrayMove(
-        laneTasks.map((task) => task.id),
-        activeIndex,
-        overIndex,
-      );
+      const overTask = tasksById.get(overId);
+      const droppedOnColumn = getPriorityFromColumnId(overId) === sourceTask.priority;
+      const droppedOnSameLaneTask = overTask?.priority === sourceTask.priority;
+      const fallbackIndex = laneTaskIds.length - 1;
+      const overIndex = droppedOnSameLaneTask ? laneTasks.findIndex((task) => task.id === overId) : fallbackIndex;
+
+      if (overIndex < 0 || activeIndex === overIndex) {
+        return;
+      }
+
+      const reorderedTaskIds = arrayMove(laneTaskIds, activeIndex, overIndex);
+      const unchanged = reorderedTaskIds.every((id, index) => id === laneTaskIds[index]);
+      if (unchanged) {
+        return;
+      }
+
+      if (!droppedOnColumn && !droppedOnSameLaneTask && activeIndex === fallbackIndex) {
+        return;
+      }
+
       onReorderWithinPriority(sourceTask.priority, reorderedTaskIds);
       return;
     }
 
+    const destinationLaneIds = tasksByPriority[targetPriority]
+      .map((task) => task.id)
+      .filter((id) => id !== taskId);
+    const targetTask = tasksById.get(overId);
+    const dropOnTargetTask = targetTask?.priority === targetPriority;
+    const insertAt = dropOnTargetTask ? destinationLaneIds.indexOf(overId) : destinationLaneIds.length;
+    const safeInsertIndex = insertAt < 0 ? destinationLaneIds.length : insertAt;
+
+    const nextDestinationOrder = [...destinationLaneIds];
+    nextDestinationOrder.splice(safeInsertIndex, 0, taskId);
+
     onPriorityChange(taskId, targetPriority);
+    onReorderWithinPriority(targetPriority, nextDestinationOrder);
   };
 
   return (

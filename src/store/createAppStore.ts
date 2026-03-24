@@ -662,7 +662,7 @@ export const createAppStore = (initialState?: AppStateV1) => {
       },
       reorderTasksWithinPriority: (priority, orderedTaskIds) => {
         set((state) => {
-          if (orderedTaskIds.length <= 1) {
+          if (orderedTaskIds.length === 0) {
             return state;
           }
 
@@ -676,7 +676,7 @@ export const createAppStore = (initialState?: AppStateV1) => {
 
           const existingIds = new Set(allPriorityTasks.map((task) => task.id));
           const orderedVisibleIds = orderedTaskIds.filter((taskId) => existingIds.has(taskId));
-          if (orderedVisibleIds.length <= 1) {
+          if (orderedVisibleIds.length === 0) {
             return state;
           }
 
