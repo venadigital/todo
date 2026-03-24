@@ -68,6 +68,7 @@ export interface AppActions {
   deleteNote: (noteId: string) => void;
   toggleNotePinned: (noteId: string) => void;
   setTaskPriority: (taskId: string, priority: Priority) => void;
+  reorderTasksWithinPriority: (priority: Priority, orderedTaskIds: string[]) => void;
   createProject: (payload: ProjectDraft) => string;
   updateProject: (projectId: string, payload: ProjectDraft) => void;
   deleteProject: (projectId: string) => void;
@@ -142,6 +143,9 @@ const createTimeSession = (taskId: string, startAt: string, endAt: string) => ({
   startAt,
   endAt,
 });
+
+const sortByUpdatedAtDesc = (a: { updatedAt: string }, b: { updatedAt: string }) =>
+  new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
 
 const isValidNoteColor = (value: unknown): value is NoteColor =>
   typeof value === 'string' && noteColorPalette.includes(value as NoteColor);
@@ -655,6 +659,57 @@ export const createAppStore = (initialState?: AppStateV1) => {
               : task,
           ),
         }));
+      },
+      reorderTasksWithinPriority: (priority, orderedTaskIds) => {
+        set((state) => {
+          if (orderedTaskIds.length <= 1) {
+            return state;
+          }
+
+          const includedIdSet = new Set(orderedTaskIds);
+          const tasksInPriority = state.tasks
+            .filter((task) => task.priority === priority && includedIdSet.has(task.id))
+            .sort(sortByUpdatedAtDesc);
+
+          if (tasksInPriority.length <= 1) {
+            return state;
+          }
+
+          const existingIds = new Set(tasksInPriority.map((task) => task.id));
+          const orderedVisibleIds = orderedTaskIds.filter((taskId) => existingIds.has(taskId));
+          if (orderedVisibleIds.length <= 1) {
+            return state;
+          }
+
+          const missingIds = tasksInPriority
+            .map((task) => task.id)
+            .filter((taskId) => !orderedVisibleIds.includes(taskId));
+          const finalOrder = [...orderedVisibleIds, ...missingIds];
+
+          const baseTime = Date.now();
+          const timestampById = new Map(
+            finalOrder.map((taskId, index) => [taskId, new Date(baseTime - index * 1000).toISOString()]),
+          );
+
+          return {
+            ...state,
+            tasks: state.tasks.map((task) => {
+              if (task.priority !== priority) {
+                return task;
+              }
+
+              const nextUpdatedAt = timestampById.get(task.id);
+              if (!nextUpdatedAt) {
+                return task;
+              }
+
+              return {
+                ...task,
+                updatedAt: nextUpdatedAt,
+              };
+            }),
+          };
+        });
       },
       createProject: (payload) => {
         const projectId = makeId('project');

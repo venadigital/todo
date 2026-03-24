@@ -230,6 +230,53 @@ describe('createAppStore', () => {
     );
   });
 
+  it('reordena tareas dentro de una misma prioridad', () => {
+    const store = createAppStore(emptyState());
+    const { actions } = store.getState();
+
+    const firstTaskId = actions.saveTask({
+      title: 'Task A',
+      description: '',
+      projectId: null,
+      status: 'pending',
+      progress: 0,
+      priority: 'high',
+      dueDate: null,
+      subtasks: [],
+    });
+    const secondTaskId = actions.saveTask({
+      title: 'Task B',
+      description: '',
+      projectId: null,
+      status: 'pending',
+      progress: 0,
+      priority: 'high',
+      dueDate: null,
+      subtasks: [],
+    });
+    const thirdTaskId = actions.saveTask({
+      title: 'Task C',
+      description: '',
+      projectId: null,
+      status: 'pending',
+      progress: 0,
+      priority: 'high',
+      dueDate: null,
+      subtasks: [],
+    });
+
+    actions.reorderTasksWithinPriority('high', [thirdTaskId, firstTaskId, secondTaskId]);
+
+    const ordered = store
+      .getState()
+      .tasks
+      .filter((task) => task.priority === 'high')
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .map((task) => task.id);
+
+    expect(ordered).toEqual([thirdTaskId, firstTaskId, secondTaskId]);
+  });
+
   it('actualiza subtareas desde el tablero y recalcula avance/estado', () => {
     const store = createAppStore(emptyState());
     const { actions } = store.getState();

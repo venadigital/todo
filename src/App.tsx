@@ -680,6 +680,7 @@ function App() {
               onToggleTracking={actions.toggleTracking}
               onPostpone={actions.postponeTask}
               onPriorityChange={actions.setTaskPriority}
+              onReorderWithinPriority={actions.reorderTasksWithinPriority}
             />
           ) : viewMode === 'dashboard' ? (
             <TimeDashboard

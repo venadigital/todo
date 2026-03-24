@@ -8,7 +8,12 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { Layers3 } from 'lucide-react';
 import { TaskCard } from './TaskCard';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -27,6 +32,7 @@ interface PriorityBoardProps {
   onToggleTracking: (taskId: string) => void;
   onPostpone: (taskId: string, days: number) => void;
   onPriorityChange: (taskId: string, priority: Priority) => void;
+  onReorderWithinPriority: (priority: Priority, orderedTaskIds: string[]) => void;
 }
 
 interface PriorityColumnProps {
@@ -131,6 +137,7 @@ export const PriorityBoard = ({
   onToggleTracking,
   onPostpone,
   onPriorityChange,
+  onReorderWithinPriority,
 }: PriorityBoardProps) => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -170,7 +177,25 @@ export const PriorityBoard = ({
       targetPriority = targetTask?.priority ?? null;
     }
 
-    if (!targetPriority || targetPriority === sourceTask.priority) {
+    if (!targetPriority) {
+      return;
+    }
+
+    if (targetPriority === sourceTask.priority) {
+      const laneTasks = tasksByPriority[sourceTask.priority];
+      const activeIndex = laneTasks.findIndex((task) => task.id === taskId);
+      const overIndex = laneTasks.findIndex((task) => task.id === overId);
+
+      if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) {
+        return;
+      }
+
+      const reorderedTaskIds = arrayMove(
+        laneTasks.map((task) => task.id),
+        activeIndex,
+        overIndex,
+      );
+      onReorderWithinPriority(sourceTask.priority, reorderedTaskIds);
       return;
     }
 
