@@ -1,6 +1,7 @@
 import { postponeDate } from '../lib/dates';
 import { makeId } from '../lib/ids';
 import { createDefaultState, loadState, saveState } from '../lib/storage';
+import { sortSubtasksForDisplay } from '../lib/subtasks';
 import type {
   AppStateV1,
   BoardFilters,
@@ -51,6 +52,7 @@ export interface AppActions {
   updateSubtask: (subtaskId: string, payload: { title?: string; done?: boolean }) => void;
   deleteSubtask: (subtaskId: string) => void;
   setSubtaskDone: (subtaskId: string, done: boolean) => void;
+  reorderSubtasks: (taskId: string, orderedSubtaskIds: string[]) => void;
   startTracking: (taskId: string) => void;
   stopTracking: () => void;
   toggleTracking: (taskId: string) => void;
@@ -397,6 +399,71 @@ export const createAppStore = (initialState?: AppStateV1) => {
       },
       setSubtaskDone: (subtaskId, done) => {
         get().actions.updateSubtask(subtaskId, { done });
+      },
+      reorderSubtasks: (taskId, orderedSubtaskIds) => {
+        set((state) => {
+          if (orderedSubtaskIds.length === 0) {
+            return state;
+          }
+
+          const task = state.tasks.find((item) => item.id === taskId);
+          if (!task) {
+            return state;
+          }
+
+          const taskSubtasks = sortSubtasksForDisplay(
+            state.subtasks.filter((subtask) => subtask.taskId === taskId),
+          );
+          if (taskSubtasks.length <= 1) {
+            return state;
+          }
+
+          const existingIds = new Set(taskSubtasks.map((subtask) => subtask.id));
+          const visibleIds = orderedSubtaskIds.filter((subtaskId) => existingIds.has(subtaskId));
+          if (visibleIds.length === 0) {
+            return state;
+          }
+
+          const missingIds = taskSubtasks
+            .map((subtask) => subtask.id)
+            .filter((subtaskId) => !visibleIds.includes(subtaskId));
+          const finalOrder = [...visibleIds, ...missingIds];
+          const currentOrder = taskSubtasks.map((subtask) => subtask.id);
+          const unchanged = finalOrder.every((subtaskId, index) => subtaskId === currentOrder[index]);
+          if (unchanged) {
+            return state;
+          }
+
+          const now = Date.now();
+          const timestampById = new Map(
+            finalOrder.map((subtaskId, index) => [
+              subtaskId,
+              new Date(now - index * 1000).toISOString(),
+            ]),
+          );
+
+          const subtasks = state.subtasks.map((subtask) => {
+            if (subtask.taskId !== taskId) {
+              return subtask;
+            }
+
+            const nextUpdatedAt = timestampById.get(subtask.id);
+            if (!nextUpdatedAt) {
+              return subtask;
+            }
+
+            return {
+              ...subtask,
+              updatedAt: nextUpdatedAt,
+            };
+          });
+
+          return {
+            ...state,
+            subtasks,
+            tasks: syncTasksForTaskId(state.tasks, subtasks, taskId, nowIso()),
+          };
+        });
       },
       startTracking: (taskId) => {
         set((state) => {

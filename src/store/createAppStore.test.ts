@@ -444,6 +444,42 @@ describe('createAppStore', () => {
     expect(task.progress).toBe(100);
   });
 
+  it('permite reordenar subtareas manualmente dentro de la misma tarea', () => {
+    const store = createAppStore(emptyState());
+    const { actions } = store.getState();
+
+    const taskId = actions.saveTask({
+      title: 'Orden subtareas',
+      description: '',
+      projectId: null,
+      status: 'pending',
+      progress: 0,
+      priority: 'medium',
+      dueDate: null,
+      subtasks: [
+        { title: 'Primera', done: false },
+        { title: 'Segunda', done: false },
+        { title: 'Tercera', done: false },
+      ],
+    });
+
+    const initial = store
+      .getState()
+      .subtasks.filter((subtask) => subtask.taskId === taskId)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .map((subtask) => subtask.id);
+
+    actions.reorderSubtasks(taskId, [initial[2], initial[0], initial[1]]);
+
+    const reordered = store
+      .getState()
+      .subtasks.filter((subtask) => subtask.taskId === taskId)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .map((subtask) => subtask.id);
+
+    expect(reordered).toEqual([initial[2], initial[0], initial[1]]);
+  });
+
   it('registra sesiones de tiempo al iniciar y detener seguimiento', () => {
     const store = createAppStore(emptyState());
     const { actions } = store.getState();

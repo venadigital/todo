@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Pause, Pencil, Play, Plus, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Pause, Pencil, Play, Plus, Trash2, X } from 'lucide-react';
 import { ProgressBar } from './ProgressBar';
+import { sortSubtasksForDisplay } from '../lib/subtasks';
 import type { FormEvent, KeyboardEvent } from 'react';
 import type { Project, Subtask, Task } from '../types';
 
@@ -13,6 +14,7 @@ interface TaskDetailModalProps {
   onOpenEditTask: (taskId: string) => void;
   onAddSubtask: (taskId: string, title: string) => void;
   onUpdateSubtask: (subtaskId: string, payload: { title?: string; done?: boolean }) => void;
+  onReorderSubtasks: (taskId: string, orderedSubtaskIds: string[]) => void;
   onDeleteSubtask: (subtaskId: string) => void;
   onToggleTracking: (taskId: string) => void;
 }
@@ -26,15 +28,44 @@ export const TaskDetailModal = ({
   onOpenEditTask,
   onAddSubtask,
   onUpdateSubtask,
+  onReorderSubtasks,
   onDeleteSubtask,
   onToggleTracking,
 }: TaskDetailModalProps) => {
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const orderedSubtasks = useMemo(() => sortSubtasksForDisplay(taskSubtasks), [taskSubtasks]);
 
   const doneCount = useMemo(
     () => taskSubtasks.filter((subtask) => subtask.done).length,
     [taskSubtasks],
   );
+
+  const moveSubtask = (subtask: Subtask, direction: 'up' | 'down') => {
+    const pendingIds = orderedSubtasks.filter((item) => !item.done).map((item) => item.id);
+    const doneIds = orderedSubtasks.filter((item) => item.done).map((item) => item.id);
+    const targetIds = subtask.done ? doneIds : pendingIds;
+    const currentIndex = targetIds.indexOf(subtask.id);
+    if (currentIndex < 0) {
+      return;
+    }
+
+    const nextIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (nextIndex < 0 || nextIndex >= targetIds.length) {
+      return;
+    }
+
+    const reorderedGroup = [...targetIds];
+    [reorderedGroup[currentIndex], reorderedGroup[nextIndex]] = [
+      reorderedGroup[nextIndex],
+      reorderedGroup[currentIndex],
+    ];
+
+    const orderedIds = subtask.done
+      ? [...pendingIds, ...reorderedGroup]
+      : [...reorderedGroup, ...doneIds];
+
+    onReorderSubtasks(task.id, orderedIds);
+  };
 
   const handleAddSubtask = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -151,7 +182,13 @@ export const TaskDetailModal = ({
             <p className="muted">No hay subtareas todavía.</p>
           ) : (
             <div className="task-detail-subtasks__list">
-              {taskSubtasks.map((subtask) => (
+              {orderedSubtasks.map((subtask) => {
+                const groupSubtasks = orderedSubtasks.filter((item) => item.done === subtask.done);
+                const groupIndex = groupSubtasks.findIndex((item) => item.id === subtask.id);
+                const canMoveUp = groupIndex > 0;
+                const canMoveDown = groupIndex >= 0 && groupIndex < groupSubtasks.length - 1;
+
+                return (
                 <div
                   key={subtask.id}
                   className={`task-detail-subtask ${subtask.done ? 'task-detail-subtask-done' : ''}`}
@@ -179,13 +216,32 @@ export const TaskDetailModal = ({
                   />
                   <button
                     type="button"
+                    className="button button-secondary button-icon"
+                    onClick={() => moveSubtask(subtask, 'up')}
+                    disabled={!canMoveUp}
+                    aria-label="Mover subtarea arriba"
+                  >
+                    <ArrowUp size={12} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-secondary button-icon"
+                    onClick={() => moveSubtask(subtask, 'down')}
+                    disabled={!canMoveDown}
+                    aria-label="Mover subtarea abajo"
+                  >
+                    <ArrowDown size={12} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
                     className="button button-danger button-icon"
                     onClick={() => onDeleteSubtask(subtask.id)}
                   >
                     <Trash2 size={12} aria-hidden="true" />
                   </button>
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
         </section>

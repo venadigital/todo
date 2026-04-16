@@ -22,6 +22,7 @@ import { TaskDetailModal } from './components/TaskDetailModal';
 import { TaskModal } from './components/TaskModal';
 import { TimeDashboard } from './components/TimeDashboard';
 import { formatElapsedClock } from './lib/timeTracking';
+import { sortSubtasksForDisplay } from './lib/subtasks';
 import { isRemoteSyncEnabled, loadRemoteState, saveRemoteState } from './lib/remoteState';
 import { appStoreApi, useAppStore } from './store/createAppStore';
 import { filterTasks } from './store/selectors';
@@ -180,6 +181,10 @@ function App() {
       map.set(subtask.taskId, [...current, subtask]);
     }
 
+    for (const [taskId, taskSubtasks] of map.entries()) {
+      map.set(taskId, sortSubtasksForDisplay(taskSubtasks));
+    }
+
     return map;
   }, [subtasks]);
 
@@ -272,7 +277,9 @@ function App() {
   const activeTask =
     taskModalState?.mode === 'edit' ? tasks.find((task) => task.id === taskModalState.taskId) : undefined;
 
-  const activeTaskSubtasks = activeTask ? subtasks.filter((subtask) => subtask.taskId === activeTask.id) : [];
+  const activeTaskSubtasks = activeTask
+    ? sortSubtasksForDisplay(subtasks.filter((subtask) => subtask.taskId === activeTask.id))
+    : [];
 
   const activeProject =
     projectModalState?.mode === 'edit'
@@ -280,7 +287,7 @@ function App() {
       : undefined;
   const activeDetailTask = taskDetailId ? tasks.find((task) => task.id === taskDetailId) : undefined;
   const activeDetailSubtasks = activeDetailTask
-    ? subtasks.filter((subtask) => subtask.taskId === activeDetailTask.id)
+    ? sortSubtasksForDisplay(subtasks.filter((subtask) => subtask.taskId === activeDetailTask.id))
     : [];
 
   const openDeleteTaskConfirm = (taskId: string) => {
@@ -733,6 +740,7 @@ function App() {
           }}
           onAddSubtask={actions.addSubtask}
           onUpdateSubtask={actions.updateSubtask}
+          onReorderSubtasks={actions.reorderSubtasks}
           onDeleteSubtask={actions.deleteSubtask}
           onToggleTracking={actions.toggleTracking}
         />
