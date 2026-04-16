@@ -2059,9 +2059,14 @@ select.input {
 
 .subtask-row {
   display: grid;
-  grid-template-columns: 1.2rem 1fr auto;
+  grid-template-columns: 1.2rem 1fr auto auto auto;
   gap: 0.5rem;
   align-items: center;
+}
+
+.subtask-row .button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .modal-backdrop {

@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
+import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react';
 import type { FormEvent } from 'react';
+import { makeId } from '../lib/ids';
 import type { TaskEditorPayload } from '../store/createAppStore';
 import type { Priority, Project, Subtask, Task, TaskStatus } from '../types';
 
 interface EditableSubtask {
-  id?: string;
+  id: string;
   title: string;
   done: boolean;
 }
@@ -30,6 +32,12 @@ const priorityOptions: Array<{ value: Priority; label: string }> = [
 ];
 
 export const TaskModal = ({ task, taskSubtasks, projects, onCancel, onSave }: TaskModalProps) => {
+  const sortEditableSubtasks = (items: EditableSubtask[]): EditableSubtask[] => {
+    const pending = items.filter((subtask) => !subtask.done);
+    const done = items.filter((subtask) => subtask.done);
+    return [...pending, ...done];
+  };
+
   const [title, setTitle] = useState(task?.title ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
   const [projectId, setProjectId] = useState<string>(task?.projectId ?? '');
@@ -38,11 +46,13 @@ export const TaskModal = ({ task, taskSubtasks, projects, onCancel, onSave }: Ta
   const [priority, setPriority] = useState<Priority>(task?.priority ?? 'medium');
   const [dueDate, setDueDate] = useState(task?.dueDate ?? '');
   const [subtasks, setSubtasks] = useState<EditableSubtask[]>(
-    taskSubtasks.map((subtask) => ({
-      id: subtask.id,
-      title: subtask.title,
-      done: subtask.done,
-    })),
+    sortEditableSubtasks(
+      taskSubtasks.map((subtask) => ({
+        id: subtask.id,
+        title: subtask.title,
+        done: subtask.done,
+      })),
+    ),
   );
 
   const hasSubtasks = subtasks.filter((subtask) => subtask.title.trim().length > 0).length > 0;
@@ -83,15 +93,53 @@ export const TaskModal = ({ task, taskSubtasks, projects, onCancel, onSave }: Ta
   };
 
   const addSubtask = () => {
-    setSubtasks((current) => [...current, { title: '', done: false }]);
+    setSubtasks((current) =>
+      sortEditableSubtasks([...current, { id: makeId('subtask'), title: '', done: false }]),
+    );
   };
 
-  const updateSubtask = (index: number, patch: Partial<EditableSubtask>) => {
-    setSubtasks((current) => current.map((subtask, subtaskIndex) => (subtaskIndex === index ? { ...subtask, ...patch } : subtask)));
+  const updateSubtask = (subtaskId: string, patch: Partial<EditableSubtask>) => {
+    setSubtasks((current) =>
+      sortEditableSubtasks(
+        current.map((subtask) => (subtask.id === subtaskId ? { ...subtask, ...patch } : subtask)),
+      ),
+    );
   };
 
-  const removeSubtask = (index: number) => {
-    setSubtasks((current) => current.filter((_, subtaskIndex) => subtaskIndex !== index));
+  const removeSubtask = (subtaskId: string) => {
+    setSubtasks((current) => current.filter((subtask) => subtask.id !== subtaskId));
+  };
+
+  const moveSubtask = (subtaskId: string, direction: 'up' | 'down') => {
+    setSubtasks((current) => {
+      const ordered = sortEditableSubtasks(current);
+      const selected = ordered.find((subtask) => subtask.id === subtaskId);
+      if (!selected) {
+        return current;
+      }
+
+      const group = ordered.filter((subtask) => subtask.done === selected.done);
+      const currentIndex = group.findIndex((subtask) => subtask.id === subtaskId);
+      if (currentIndex < 0) {
+        return current;
+      }
+
+      const nextIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+      if (nextIndex < 0 || nextIndex >= group.length) {
+        return current;
+      }
+
+      const reorderedGroup = [...group];
+      [reorderedGroup[currentIndex], reorderedGroup[nextIndex]] = [
+        reorderedGroup[nextIndex],
+        reorderedGroup[currentIndex],
+      ];
+
+      const pending = selected.done ? ordered.filter((subtask) => !subtask.done) : reorderedGroup;
+      const done = selected.done ? reorderedGroup : ordered.filter((subtask) => subtask.done);
+
+      return [...pending, ...done];
+    });
   };
 
   return (
@@ -190,24 +238,54 @@ export const TaskModal = ({ task, taskSubtasks, projects, onCancel, onSave }: Ta
               <p className="muted">Sin subtareas todavía.</p>
             ) : (
               <div className="subtasks-list">
-                {subtasks.map((subtask, index) => (
-                  <div key={subtask.id ?? `new-${index}`} className="subtask-row">
+                {subtasks.map((subtask) => {
+                  const group = subtasks.filter((item) => item.done === subtask.done);
+                  const indexInGroup = group.findIndex((item) => item.id === subtask.id);
+                  const canMoveUp = indexInGroup > 0;
+                  const canMoveDown = indexInGroup >= 0 && indexInGroup < group.length - 1;
+
+                  return (
+                  <div key={subtask.id} className="subtask-row">
                     <input
                       type="checkbox"
                       checked={subtask.done}
-                      onChange={(event) => updateSubtask(index, { done: event.target.checked })}
+                      onChange={(event) => updateSubtask(subtask.id, { done: event.target.checked })}
                     />
                     <input
                       className="input"
                       value={subtask.title}
-                      onChange={(event) => updateSubtask(index, { title: event.target.value })}
+                      onChange={(event) => updateSubtask(subtask.id, { title: event.target.value })}
                       placeholder="Descripción de la subtarea"
                     />
-                    <button type="button" className="button button-danger button-icon" onClick={() => removeSubtask(index)}>
-                      X
+                    <button
+                      type="button"
+                      className="button button-secondary button-icon"
+                      onClick={() => moveSubtask(subtask.id, 'up')}
+                      disabled={!canMoveUp}
+                      aria-label="Mover subtarea arriba"
+                    >
+                      <ArrowUp size={12} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      className="button button-secondary button-icon"
+                      onClick={() => moveSubtask(subtask.id, 'down')}
+                      disabled={!canMoveDown}
+                      aria-label="Mover subtarea abajo"
+                    >
+                      <ArrowDown size={12} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      className="button button-danger button-icon"
+                      onClick={() => removeSubtask(subtask.id)}
+                      aria-label="Eliminar subtarea"
+                    >
+                      <Trash2 size={12} aria-hidden="true" />
                     </button>
                   </div>
-                ))}
+                );
+                })}
               </div>
             )}
           </section>

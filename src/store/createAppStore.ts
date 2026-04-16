@@ -88,8 +88,10 @@ const normalizeSubtasks = (
   existingById: Map<string, { createdAt: string }>,
   timestamp: string,
 ) => {
+  const baseTime = Date.now();
+
   return drafts
-    .map((draft) => {
+    .map((draft, index) => {
       const title = draft.title.trim();
       if (!title) {
         return null;
@@ -104,7 +106,7 @@ const normalizeSubtasks = (
         title,
         done: draft.done,
         createdAt: existing?.createdAt ?? timestamp,
-        updatedAt: timestamp,
+        updatedAt: new Date(baseTime - index * 1000).toISOString(),
       };
     })
     .filter((subtask): subtask is NonNullable<typeof subtask> => subtask !== null);

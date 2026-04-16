@@ -480,6 +480,55 @@ describe('createAppStore', () => {
     expect(reordered).toEqual([initial[2], initial[0], initial[1]]);
   });
 
+  it('preserva orden manual de subtareas al guardar edición de tarea', () => {
+    const store = createAppStore(emptyState());
+    const { actions } = store.getState();
+
+    const taskId = actions.saveTask({
+      title: 'Edicion orden',
+      description: '',
+      projectId: null,
+      status: 'pending',
+      progress: 0,
+      priority: 'medium',
+      dueDate: null,
+      subtasks: [
+        { title: 'A', done: false },
+        { title: 'B', done: false },
+        { title: 'C', done: false },
+      ],
+    });
+
+    const before = store
+      .getState()
+      .subtasks.filter((subtask) => subtask.taskId === taskId)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+    actions.saveTask({
+      id: taskId,
+      title: 'Edicion orden',
+      description: '',
+      projectId: null,
+      status: 'pending',
+      progress: 0,
+      priority: 'medium',
+      dueDate: null,
+      subtasks: [
+        { id: before[2].id, title: before[2].title, done: false },
+        { id: before[0].id, title: before[0].title, done: false },
+        { id: before[1].id, title: before[1].title, done: false },
+      ],
+    });
+
+    const after = store
+      .getState()
+      .subtasks.filter((subtask) => subtask.taskId === taskId)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .map((subtask) => subtask.id);
+
+    expect(after).toEqual([before[2].id, before[0].id, before[1].id]);
+  });
+
   it('registra sesiones de tiempo al iniciar y detener seguimiento', () => {
     const store = createAppStore(emptyState());
     const { actions } = store.getState();
